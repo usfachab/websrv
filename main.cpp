@@ -9,7 +9,7 @@
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP
 #define SA					struct sockaddr
 #define SAIN				struct	sockaddr_in
-#define IP					"168.0.0.2"
+#define IP					"127.0.0.2"
 #define FALSE				0
 #define	TRUE				1
 #define	MAX_CLIENTS			32
@@ -21,8 +21,9 @@
 #define CLOSE( SOCK )		if ( SOCK != FAIL  ) close ( SOCK );
 #define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break; }
 #define EXIT( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); exit( errno );}
-#define OK					std::cout << "OK" << std::endl;
+#define COUT( VAL )			std::cout << VAL << std::endl;
 #define	TIME_OUT( VAL )		if ( VAL == 0 ) { std::cerr << "Select: Time out" << std::endl; break; }
+#define	RECV_ERROR( VAL )	if (rc < 0) { if (errno != EWOULDBLOCK) { perror("  recv() failed"); close_conn = TRUE; } break; }		
 
 struct sockaddr_in serverAddrInit( void )
 {
@@ -84,14 +85,14 @@ int	initServer()
 
 int main()
 {
-	int so, ac, rc, sn, se, maxSo, readyToReadSos, serverEnd = FALSE, newSo = -1;
+	int so, ac, rc, sn, se, maxSo, readyToReadSos, serverEnd = FALSE, newSo = -1, close_conn = FALSE, len;
 	struct	sockaddr_in clientAddr;
 	char	buffer[128];
 	socklen_t clientAddrSize = sizeof( SAIN );
 	fd_set	master_set, working_set;
 	struct timeval      timeout;
 
-	// initiaze the server by creating a socket bind it and listen to it
+	// initiaze the server by creating a socket bind it and listen for incoming connections
 	so = initServer();
 	EXIT( "init", so );
 
@@ -104,7 +105,7 @@ int main()
 	do
 	{
 
-		memcpy(&working_set, &master_set, sizeof(master_set));
+		memcpy( &working_set, &master_set, sizeof( master_set ) );
 		se = select( maxSo + 1, &working_set, NULL, NULL, &timeout );
 		ERROR( "select", se );
 		TIME_OUT( se );
@@ -112,36 +113,68 @@ int main()
 		readyToReadSos = se;
 		for ( int i = 0; i <= maxSo && readyToReadSos > 0; ++i )
 		{
+			// maxSo == 4
 			if ( FD_ISSET( i, &working_set ) )
 			{
+				// readyToreadSos == 1;
 				readyToReadSos--;
-				if ( i == so )
+				// readyToreadSos == 0;
+				if ( i == so ) // for accepting the incoming connections
 				{
-					std::cout << "Listening socket is readable\n" << std::endl;
 					do
 					{
+						// accept every incoming connection and add each one to the master_set for monitoring by select
 						newSo = accept( so, ( SA * )&clientAddr, &clientAddrSize );
+						ERROR( "accept", newSo );
+						FD_SET( newSo, &master_set );
+						COUT( "New incoming connection accepted and added to master_set" );
+						if ( newSo > maxSo )
+							maxSo = newSo;
 						
 					} while ( newSo != -1 );
 				}
+				else // handling read and send client socket
+				{
+					COUT( "Client socket is readable" );
+					do
+					{
+						rc = recv( i, buffer, sizeof( buffer ), NO_FLAG );
+						COUT( rc );
+						if ( rc < 0 )
+						{
+							COUT( "Recv failed" );
+							close_conn = TRUE;
+							break;
+						}
+						if ( rc  == 0 )
+						{
+							COUT( "Connection closed" );
+							close_conn = TRUE;
+							break;
+						}
+						COUT( "Data successfuly recieved form client" );
+						len = rc;
+						COUT( len );
+						sn = send( i, "Hello client", 12, NO_FLAG );
+						if ( sn < 0 )
+						{
+							perror("send failed");
+							close_conn = TRUE;
+							break;
+						}
+					} while ( TRUE );
+					if ( close_conn )
+					{
+						CLOSE( i );
+						FD_CLR( i, &master_set );
+						if ( i == maxSo )
+						{
+							while ( FD_ISSET( maxSo, &master_set ) == FALSE )
+								maxSo--;
+						}
+					}
+				}
 			}
-		}
-
-		while ( TRUE )
-		{
-
-			ac = accept( so, ( SA * )&clientAddr, &clientAddrSize );
-			ERROR( "accept", ac );
-
-			rc = recv( ac, buffer, sizeof( buffer ), NO_FLAG );
-			ERROR( "recv", rc );
-
-			sn = send( ac, buffer, strlen( buffer ), NO_FLAG );
-			sn += send( ac, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
-			sn += send( ac, RES_BODY, strlen( RES_BODY ), NO_FLAG );
-			ERROR( "send", sn );
-
-			shutdown( ac, SHUT_WR );
 		}
 
 	} while ( serverEnd == FALSE );
