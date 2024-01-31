@@ -79,3 +79,6 @@ setsockopt() can useful for non-blocking mode where I/O calls do not block execu
 
     - Socket Non-Blocking (O_NONBLOCK):
         Sets the socket to non-blocking mode, where I/O calls do not block execution.
+
+Example: Nonblocking I/O and select(): 
+	- https://www.ibm.com/docs/en/i/7.5?topic=designs-example-nonblocking-io-select
