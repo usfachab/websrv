@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <unistd.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -11,15 +12,17 @@
 #define IP					"168.0.0.2"
 #define FALSE				0
 #define	TRUE				1
-#define	MAX_CLIENTS			15
+#define	MAX_CLIENTS			32
 #define PORT				6461
 #define NO_FLAG				0
 #define	FAIL				-1
 #define NSDR				1024 // The number of socket descriptors to be checked
 #define CHECK( VAL )		if ( VAL == FAIL ) return FAIL;
-#define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break ;}
 #define CLOSE( SOCK )		if ( SOCK != FAIL  ) close ( SOCK );
+#define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break; }
+#define EXIT( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); exit( errno );}
 #define OK					std::cout << "OK" << std::endl;
+#define	TIME_OUT( VAL )		if ( VAL == 0 ) { std::cerr << "Select: Time out" << std::endl; break; }
 
 struct sockaddr_in serverAddrInit( void )
 {
@@ -36,13 +39,16 @@ struct sockaddr_in serverAddrInit( void )
 
 int	initServer()
 {
-	int		sock = -1, _sock = -1, baddr, listn;
+	int		rc, so = -1, opt = 1;
 	struct	sockaddr_in serverAddr;
 
 	// create a socket
-	sock = socket( SOCKET_TYPE_INET ); CHECK( sock );
+	so = socket( SOCKET_TYPE_INET ); CHECK( so );
 
-	fcntl( sock, F_SETFL, O_NONBLOCK, FD_CLOEXEC );
+	// for ddevlopment porpose Set SO_REUSEADDR to make the socket address/port reusable
+	rc = setsockopt( so, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ) ); CHECK( rc );
+
+	rc = fcntl( so, F_SETFL, O_NONBLOCK, FD_CLOEXEC ); CHECK( rc );
 
 	/* ANCHOR fcntl argument
 		* F_SETFL:
@@ -66,61 +72,79 @@ int	initServer()
 
 	serverAddr = serverAddrInit();
 	// bind socket with address and port
-	baddr = bind( sock, ( SA * )&serverAddr,  sizeof( struct sockaddr_in ) ); CHECK( baddr );
+	rc = bind( so, ( SA * )&serverAddr,  sizeof( struct sockaddr_in ) ); CHECK( rc );
 	// listen for connections on a socket
-	listn = listen( sock,  MAX_CLIENTS ); CHECK( listn );
+	rc = listen( so,  MAX_CLIENTS ); CHECK( rc );
 
-	return ( sock );
+	return ( so );
 }
+
+#define RES_HEADER	"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n"
+#define RES_BODY	"<html>\r\n<body>\r\n<h1>Hello, World!</h1>\r\n</body>\r\n</html>\r\n"
 
 int main()
 {
-	int so, ac, rc, sn, se;
+	int so, ac, rc, sn, se, maxSo, readyToReadSos, serverEnd = FALSE, newSo = -1;
 	struct	sockaddr_in clientAddr;
-	char	buffer[200];
+	char	buffer[128];
 	socklen_t clientAddrSize = sizeof( SAIN );
-	fd_set	readfds;
-	const char *http_header = 
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html; charset=UTF-8\r\n"
-    "Connection: close\r\n"
-    "\r\n";
+	fd_set	master_set, working_set;
+	struct timeval      timeout;
 
-	const char *html_content = 
-	"<html>\r\n"
-	"<head><title>Test Page</title></head>\r\n"
-	"<body>\r\n"
-	"<h1>Hello, World!</h1>\r\n"
-	"<p>This is a test page.</p>\r\n"
-	"</body>\r\n"
-	"</html>\r\n";
+	// initiaze the server by creating a socket bind it and listen to it
+	so = initServer();
+	EXIT( "init", so );
 
+	FD_ZERO( &master_set );
+	maxSo = so;
+	FD_SET( so, &master_set );
+	// if no activity after 3 minutes this program will end.
+	timeout.tv_sec  = 3 * 60;
+	timeout.tv_usec = 0;
 	do
 	{
-		// initiaze the server by creating a socket bind it and listen to it
-		so = initServer();
-		ERROR( "init", so );
 
-		// select
+		memcpy(&working_set, &master_set, sizeof(master_set));
+		se = select( maxSo + 1, &working_set, NULL, NULL, &timeout );
+		ERROR( "select", se );
+		TIME_OUT( se );
+
+		readyToReadSos = se;
+		for ( int i = 0; i <= maxSo && readyToReadSos > 0; ++i )
+		{
+			if ( FD_ISSET( i, &working_set ) )
+			{
+				readyToReadSos--;
+				if ( i == so )
+				{
+					std::cout << "Listening socket is readable\n" << std::endl;
+					do
+					{
+						newSo = accept( so, ( SA * )&clientAddr, &clientAddrSize );
+						
+					} while ( newSo != -1 );
+				}
+			}
+		}
+
 		while ( TRUE )
 		{
-			FD_ZERO( &readfds );
-			FD_SET( so, &readfds );
-
-			se = select( NSDR, &readfds, NULL, NULL, NULL );
-			ERROR( "select", se );
 
 			ac = accept( so, ( SA * )&clientAddr, &clientAddrSize );
 			ERROR( "accept", ac );
-			sn = send( ac, http_header, strlen( http_header ), NO_FLAG );
-			sn = send( ac, html_content, strlen( html_content ), NO_FLAG );
-			ERROR("send", sn );
-			// sleep( 4 );
-			// CLOSE( ac );
+
+			rc = recv( ac, buffer, sizeof( buffer ), NO_FLAG );
+			ERROR( "recv", rc );
+
+			sn = send( ac, buffer, strlen( buffer ), NO_FLAG );
+			sn += send( ac, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
+			sn += send( ac, RES_BODY, strlen( RES_BODY ), NO_FLAG );
+			ERROR( "send", sn );
+
 			shutdown( ac, SHUT_WR );
 		}
 
-	} while ( FALSE );
+	} while ( serverEnd == FALSE );
 
 	CLOSE( so );
 
