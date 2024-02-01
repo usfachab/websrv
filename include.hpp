@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <cstring>
 
 #define BUFFER_SIZE			128
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP

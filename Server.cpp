@@ -32,7 +32,8 @@ void	Server::initServer( void )
 	rc = setsockopt( so, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ) );
 	EXIT( "setsockopt", rc );
 
-	rc = fcntl( so, F_SETFL, O_NONBLOCK, FD_CLOEXEC );
+	// rc = fcntl( so, F_SETFL, O_NONBLOCK, FD_CLOEXEC );
+	rc = fcntl( so, F_SETFL, fcntl(so, F_GETFL, 0) | O_NONBLOCK);
 	EXIT( "fcntl", rc );
 
 	/* ANCHOR fcntl argument
@@ -116,9 +117,10 @@ void Server::recvAndSendClientData( int clientSocket )
 	do
 	{
 		rc = recv( clientSocket, buffer, sizeof( buffer ), NO_FLAG );
-		if ( rc == FAIL )
+		COUT( rc );
+		if ( rc == -1 )
 		{
-			// COUT( "Recv failed" );
+			COUT( "Recv failed" );
 			clientRequestParse( buffer );
 			close_conn = TRUE;
 			break;
@@ -126,6 +128,7 @@ void Server::recvAndSendClientData( int clientSocket )
 		if ( rc  == 0 )
 		{
 			// COUT( "Connection closed" );
+			clientRequestParse( buffer );
 			close_conn = TRUE;
 			break;
 		}
@@ -138,7 +141,7 @@ void Server::recvAndSendClientData( int clientSocket )
 			close_conn = TRUE;
 			break;
 		}
-		// COUT( "Data successfuly sent to client" );
+		COUT( "Data successfuly sent to client" );
 	} while ( TRUE );
 
 	if ( close_conn )
@@ -155,6 +158,16 @@ void Server::recvAndSendClientData( int clientSocket )
 
 void Server::clientRequestParse( std::string buffer )
 {
+	std::string word;
 	std::string startLineKeyWords[ 3 ] = { "method", "uri", "version" };
-	std::string startLine ( buffer.at( std::find_first_of( buffer, '\r' ) ) );
+	std::string startLine ( buffer.substr(0, buffer.find_first_of( '\r' ) ) );
+	std::stringstream geek( startLine );
+	
+	for( int i = 0; i < startLine.length() ; ++i )
+	{
+		if ( getline( geek, word, ' ' ) )
+			clientRequestMap[ startLineKeyWords[ i ] ] = word;
+	}
+	for ( auto  &kv : clientRequestMap )
+		std::cout << kv.first << ": " << kv.second << std::endl;
 }
