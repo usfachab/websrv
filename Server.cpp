@@ -28,7 +28,7 @@ void	Server::initServer( void )
 	so = socket( SOCKET_TYPE_INET );
 	EXIT( "socket", so );
 
-	// for ddevlopment porpose Set SO_REUSEADDR to make the socket address/port reusable
+	// for devlopment porpose Set SO_REUSEADDR to make the socket address/port reusable
 	rc = setsockopt( so, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ) );
 	EXIT( "setsockopt", rc );
 
@@ -103,7 +103,7 @@ void Server::acceptIncomingConnections()
 		newSo = accept( so, ( SA * )&clientAddr, &clientAddrSize );
 		ERROR( "accept", newSo );
 		FD_SET( newSo, &master_set );
-		COUT( "New incoming connection accepted and added to master_set" );
+		// COUT( "New incoming connection accepted and added to master_set" );
 		if ( newSo > maxSo )
 			maxSo = newSo;
 		
@@ -112,38 +112,38 @@ void Server::acceptIncomingConnections()
 
 void Server::recvAndSendClientData( int clientSocket )
 {
-	COUT( "Client socket is readable" );
+	// COUT( "Client socket is readable" );
 	do
 	{
 		rc = recv( clientSocket, buffer, sizeof( buffer ), NO_FLAG );
-		COUT( rc );
-		if ( rc < 0 )
+		if ( rc == FAIL )
 		{
-			COUT( "Recv failed" );
+			// COUT( "Recv failed" );
+			clientRequestParse( buffer );
 			close_conn = TRUE;
 			break;
 		}
 		if ( rc  == 0 )
 		{
-			COUT( "Connection closed" );
+			// COUT( "Connection closed" );
 			close_conn = TRUE;
 			break;
 		}
-		COUT( "Data successfuly recieved form client" );
-		len = rc;
-		COUT( len );
-		rc = send( clientSocket, "Hello client", 12, NO_FLAG );
-		if ( rc < 0 )
+		// COUT( "Data successfuly recieved form client" );
+		rc = send( clientSocket, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
+		rc += send( clientSocket, RES_BODY, strlen( RES_BODY ), NO_FLAG );
+		if ( rc == FAIL )
 		{
 			perror("send failed");
 			close_conn = TRUE;
 			break;
 		}
+		// COUT( "Data successfuly sent to client" );
 	} while ( TRUE );
 
 	if ( close_conn )
 	{
-		CLOSE( clientSocket );
+		close( clientSocket );
 		FD_CLR( clientSocket, &master_set );
 		if ( clientSocket == maxSo )
 		{
@@ -151,4 +151,10 @@ void Server::recvAndSendClientData( int clientSocket )
 				maxSo--;
 		}
 	}
+}
+
+void Server::clientRequestParse( std::string buffer )
+{
+	std::string startLineKeyWords[ 3 ] = { "method", "uri", "version" };
+	std::string startLine ( buffer.at( std::find_first_of( buffer, '\r' ) ) );
 }

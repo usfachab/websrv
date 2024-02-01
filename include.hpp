@@ -8,6 +8,10 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <map>
+#include <string>
+#include <sstream>
+#include <fstream>
 
 #define BUFFER_SIZE			128
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP

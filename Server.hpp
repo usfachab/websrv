@@ -9,6 +9,7 @@ private:
 	int		serverEnd, close_conn;
 	char	buffer[ BUFFER_SIZE ];
 	fd_set	master_set, working_set;
+	std::map<std::string, std::string>	clientRequestMap;
 
 	struct	sockaddr_in	serverAddr, clientAddr;
 	socklen_t			clientAddrSize;
@@ -21,6 +22,7 @@ public:
 	void CheckReadableSockets( void );
 	void acceptIncomingConnections( void );
 	void recvAndSendClientData( int );
+	void clientRequestParse( std::string );
 };
 
 #endif
