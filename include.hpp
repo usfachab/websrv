@@ -13,8 +13,11 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <fstream>
+#include <vector>
 
-#define BUFFER_SIZE			128
+#define OK					std::cout << "OK" << std::endl;
+#define BUFFER_SIZE			1024
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP
 #define SA					struct sockaddr
 #define SAIN				struct	sockaddr_in
@@ -31,6 +34,7 @@
 #define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break; }
 #define EXIT( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); exit( errno );}
 #define COUT( VAL )			std::cout << VAL << std::endl;
+#define CERR( VAL )			std::cerr << VAL << std::endl;
 #define	TIME_OUT( VAL )		if ( VAL == 0 ) { std::cerr << "Select: Time out" << std::endl; break; }
 #define	RECV_ERROR( VAL )	if (rc < 0) { if (errno != EWOULDBLOCK) { perror("  recv() failed"); close_conn = TRUE; } break; }
 #define RES_HEADER	"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n"
