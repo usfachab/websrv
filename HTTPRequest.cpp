@@ -31,7 +31,10 @@ bool	HTTPRequest::appandClientRequest( int clientSocket )
 				once = FALSE;
 			}
 			if ( clientRequest.find( "\r\n\r\n" ) )
+			{
+				body = clientRequest.substr( clientRequest.find( "\r\n\r\n" ) + 4 );
 				break ;
+			}
 		}
 		else if ( rc <= 0 )
 			return ( CLOSESOCKET );
@@ -65,6 +68,7 @@ bool	HTTPRequest::startParsingRequest( int clientSocket )
 	// body appanding
 	if ( contentLength > 0 )
 		parseBody( clientSocket, contentLength );
+	COUT( "body " + body );
 	return ( GOOD );
 }
 

@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 
 git: fclean
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : small body problem"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : problem solved"
 	git push
 
 .PHONY: clean fclean re
