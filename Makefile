@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 
 git:
 	git add .
-	git commit -m "Pushing for no porpose"
+	git commit -m "Got stuck at separated header-body request"
 	git push
 
 .PHONY: clean fclean re

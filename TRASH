@@ -1,0 +1,59 @@
+# ------------------------------------------------------------------------------ #
+if ( rc > 0 )
+		{
+			buffer[ rc ] = '\0';
+			clientData.append( buffer, rc );
+			// if ( clientData.find( "\r\n\r\n" ) ) // Header ends here
+			// 	break ;
+		}
+		else if ( rc < 0 )
+		{
+			log << "[ error ] recv failed";
+			break ;
+		}
+		else if ( rc == 0 )
+		{
+			log << "[ error ] client close connection";
+			break ;
+		}
+	}
+	// start parsing the request
+	if ( rc == FAIL || rc == FALSE )
+	{
+		connClosed = TRUE;
+		close( clientSocket );
+	}
+	else
+	{
+		std::string			line;
+		std::stringstream	data( clientData );
+
+		if ( ! std::getline( data, line, '\r' ) )
+			connClosed = TRUE;
+		// parsing Method, URI and version
+		if ( connClosed == FALSE )
+		{
+			parseMethodAndURI( line );
+			// parsing headers
+			while ( std::getline( data, line ) && line != "\r" )
+			{
+				if ( !line.empty() && line.back() == '\r' )
+					line.pop_back();
+				headers.push_back( line );
+			}
+			if ( headers.size() <= 0 )
+				connClosed = TRUE;
+			else
+				parseHeaders( headers );
+			if ( contentLength > 0 )
+				parseBody( clientSocket, contentLength );
+			COUT( body );
+		}
+		else
+		{
+			connClosed = TRUE;
+			close( clientSocket );
+		}
+	}
+
+# ------------------------------------------------------------------------------ #

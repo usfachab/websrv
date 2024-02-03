@@ -90,7 +90,7 @@ void Server::CheckReadableSockets( void )
 				if ( i == so ) // for accepting the incoming connections
 					acceptIncomingConnections();
 				else
-					recvAndSendClientData( i );					
+					recvAndSendClientData( i );
 			}
 		}
 	} while ( serverEnd == FALSE );

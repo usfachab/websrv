@@ -12,6 +12,7 @@ public:
 
 private:
 	int connClosed;
+	int contentLength;
     std::string method;
     std::string uri;
 	std::string version;
@@ -21,5 +22,5 @@ private:
     void parseRequest( int clientSocket );
     void parseMethodAndURI( const std::string& request_line );
     void parseHeaders( const std::vector<std::string>& header_lines );
-    // void parseBody(int clientSocket, size_t content_length);
+    void parseBody( int client_socket, size_t content_length);
 };
