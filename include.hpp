@@ -16,6 +16,9 @@
 #include <fstream>
 #include <vector>
 
+#define GOOD				FALSE
+#define CLOSESOCKET			TRUE
+#define CLOSE( VAL, SOCK )	if ( VAL == TRUE ){ close( SOCK );  return ; }
 #define OK					std::cout << "OK" << std::endl;
 #define BUFFER_SIZE			1024
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP
@@ -30,7 +33,7 @@
 #define	FAIL				-1
 #define NSDR				1024 // The number of socket descriptors to be checked
 #define CHECK( VAL )		if ( VAL == FAIL ) return FAIL;
-#define CLOSE( SOCK )		if ( SOCK != FAIL  ) close ( SOCK );
+// #define CLOSE( SOCK )		if ( SOCK != FAIL  ) close ( SOCK );
 #define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break; }
 #define EXIT( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); exit( errno );}
 #define COUT( VAL )			std::cout << VAL << std::endl;

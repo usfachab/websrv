@@ -9,18 +9,23 @@ public:
     // std::string getHeader( const std::string& header_name ) const;
     // std::string getBody() const;
 	// int			getConnectionStatus();
+	~HTTPRequest();
 
 private:
-	int connClosed;
-	int contentLength;
-    std::string method;
     std::string uri;
-	std::string version;
-    std::map<std::string, std::string> headers;
     std::string body;
+    std::string method;
+	std::string version;
+	std::string	clientRequest;
 
-    void parseRequest( int clientSocket );
-    void parseMethodAndURI( const std::string& request_line );
-    void parseHeaders( const std::vector<std::string>& header_lines );
-    void parseBody( int client_socket, size_t content_length);
+	bool		connClosed;
+	int			contentLength;
+
+    std::map<std::string, std::string> headers;
+
+	bool			appandClientRequest( int );
+	bool			startParsingRequest( int );
+    void 			parseMethodAndURI( std::string& );
+    bool 			parseHeaders( const std::vector<std::string>& );
+    bool 			parseBody( int , size_t );
 };

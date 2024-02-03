@@ -9,7 +9,7 @@ Server::Server() : clientAddrSize ( sizeof( SAIN ) ), serverEnd ( FALSE ), close
 
 Server::~Server()
 {
-	CLOSE( so );
+	close( so );
 }
 
 

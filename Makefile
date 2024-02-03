@@ -27,9 +27,9 @@ fclean: clean
 
 re: fclean $(TARGET)
 
-git:
+git: fclean
 	git add .
-	git commit -m "Got stuck at separated header-body request"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : small body problem"
 	git push
 
 .PHONY: clean fclean re

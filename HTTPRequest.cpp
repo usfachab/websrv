@@ -2,20 +2,22 @@
 
 HTTPRequest::HTTPRequest( int clientSocket ) : connClosed ( FALSE )
 {
-	parseRequest( clientSocket );
+	connClosed = appandClientRequest( clientSocket );
+	CLOSE( connClosed, clientSocket );
+
+	connClosed = startParsingRequest( clientSocket );
+	CLOSE( connClosed, clientSocket );
 }
 
-void HTTPRequest::parseRequest( int clientSocket )
+HTTPRequest::~HTTPRequest() {}
+
+bool	HTTPRequest::appandClientRequest( int clientSocket )
 {
-	COUT( "Parsing Request" );
 	int rc;
-	bool once = true;
-	std::string clientRequest;
+	bool once = TRUE;
 	char buffer[ BUFFER_SIZE ];
-	std::vector<std::string> headers;
 
-	contentLength = 0;
-
+	COUT( "appand client request" );
 	while ( TRUE )
 	{
 		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
@@ -26,69 +28,64 @@ void HTTPRequest::parseRequest( int clientSocket )
 			if ( once == true && clientRequest.find( "100-continue" ) )
 			{
 				send( clientSocket, "HTTP/1.1 100 Continue\r\n\r\n", 26, NO_FLAG );
-				once = false;
+				once = FALSE;
 			}
 			if ( clientRequest.find( "\r\n\r\n" ) )
 				break ;
 		}
 		else if ( rc <= 0 )
-		{
-			connClosed = TRUE;
-			break;
-		}
+			return ( CLOSESOCKET );
 	}
-	// start parsing the request
-	if ( connClosed == TRUE )
-		close( clientSocket );
-	else
-	{
-		std::string			line;
-		std::stringstream	data( clientRequest );
-
-		if ( ! std::getline( data, line, '\r' ) )
-			connClosed = TRUE;
-		// parsing Method, URI and version
-		if ( connClosed == FALSE )
-		{
-			parseMethodAndURI( line );
-			// parsing headers
-			while ( std::getline( data, line ) && line != "\r" )
-			{
-				if ( !line.empty() && line.back() == '\r' )
-					line.pop_back();
-				headers.push_back( line );
-			}
-			if ( headers.size() <= 0 )
-				connClosed = TRUE;
-			else
-				parseHeaders( headers );
-			if ( contentLength > 0 )
-				parseBody( clientSocket, contentLength );
-			COUT( body );
-		}
-		else
-		{
-			connClosed = TRUE;
-			close( clientSocket );
-		}
-	}
+	return ( GOOD );
 }
 
-void HTTPRequest::parseMethodAndURI( const std::string& request_line )
+bool	HTTPRequest::startParsingRequest( int clientSocket )
+{
+	std::string			line;
+	std::vector<std::string> headers;
+	std::stringstream	data( clientRequest );
+
+	COUT( "start parsing request" );
+	if ( !std::getline( data, line, '\n' ) )
+		return ( CLOSESOCKET );
+	else
+		parseMethodAndURI( line );
+	// create a headers lines vector
+	while ( std::getline( data, line ) && line != "\r" )
+	{
+		if ( !line.empty() && line.back() == '\r' )
+			line.pop_back();
+		headers.push_back( line );
+	}
+	// turn vector to map
+	if ( headers.size() <= 0 )
+		return ( CLOSESOCKET );
+	else
+		parseHeaders( headers );
+	// body appanding
+	if ( contentLength > 0 )
+		parseBody( clientSocket, contentLength );
+	return ( GOOD );
+}
+
+void	HTTPRequest::parseMethodAndURI( std::string& request_line )
 {
 	COUT( "Parsing start line" );
+
+	if ( !request_line.empty() && request_line.back() == '\r' )
+		request_line.pop_back();
 	method	=	request_line.substr( 0, request_line.find_first_of( ' ' )  );
 	uri		=	request_line.substr( method.length() + 1, 1 );
 	version =	request_line.substr( method.length() + uri.length() + 2, request_line.find_first_of( '\r' ) );
 }
 
-void HTTPRequest::parseHeaders( const std::vector<std::string>& header_lines )
+bool HTTPRequest::parseHeaders( const std::vector<std::string>& header_lines )
 {
-	COUT( "Parsing Headers" );
 	std::vector<std::string>::const_iterator it;
 	std::string	first;
 	std::string	second;
 
+	COUT( "Parsing Headers" );
 	for ( it = header_lines.begin(); it != header_lines.end(); ++it )
 	{
 		try
@@ -101,45 +98,34 @@ void HTTPRequest::parseHeaders( const std::vector<std::string>& header_lines )
 		}
 		catch( const std::exception& e )
 		{
-			std::cerr << e.what() << '\n';
-			connClosed = TRUE;
+			return ( CLOSESOCKET );
 		}
 	}
-	
+	return ( GOOD );
 	// for ( auto  &kv : headers )
 	// 	std::cout << kv.first << ": " << kv.second << std::endl;
 }
 
-void HTTPRequest::parseBody( int clientSocket, size_t content_length )
+bool HTTPRequest::parseBody( int clientSocket, size_t content_length )
 {
-	COUT( "Parsing body" );
 	int rc;
 	char buffer[ BUFFER_SIZE ];
 	std::ofstream log;
 	log.open( "./logs" );
 
-	if ( contentLength > 0 )
+	COUT( "Parsing body" );
+	while ( TRUE )
 	{
-		while ( TRUE )
+		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+		if ( rc > 0 )
 		{
-			rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-			if ( rc > 0 )
-			{
-				buffer[ rc ] = 0;
-				body.append( buffer );
-			}
-			else if ( rc == -1 )
-			{
-				log << "[ error ] recv failed";
-				break ;
-			}
-			else if ( rc == 0 )
-			{
-				log << "[ error ] client colse connection";
-				break ;
-			}
+			buffer[ rc ] = 0;
+			body.append( buffer, rc );
 		}
+		else if ( rc <= 0 )
+			return ( CLOSESOCKET );
 	}
+	return ( GOOD );
 }
 
 // std::string HTTPRequest::getMethod() const
