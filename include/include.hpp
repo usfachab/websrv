@@ -16,6 +16,9 @@
 #include <fstream>
 #include <vector>
 
+
+#define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
+#define CRLF				"\r\n\r\n"
 #define GOOD				FALSE
 #define CLOSESOCKET			TRUE
 #define CLOSE( VAL, SOCK )	if ( VAL == TRUE ){ close( SOCK );  return ; }
@@ -33,7 +36,6 @@
 #define	FAIL				-1
 #define NSDR				1024 // The number of socket descriptors to be checked
 #define CHECK( VAL )		if ( VAL == FAIL ) return FAIL;
-// #define CLOSE( SOCK )		if ( SOCK != FAIL  ) close ( SOCK );
 #define ERROR( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); break; }
 #define EXIT( WHO, VAL )	if ( VAL == FAIL ) { perror( WHO ); exit( errno );}
 #define COUT( VAL )			std::cout << VAL << std::endl;
@@ -42,7 +44,5 @@
 #define	RECV_ERROR( VAL )	if (rc < 0) { if (errno != EWOULDBLOCK) { perror("  recv() failed"); close_conn = TRUE; } break; }
 #define RES_HEADER	"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n"
 #define RES_BODY	"<html>\r\n<body>\r\n<h1>Hello, World!</h1>\r\n</body>\r\n</html>\r\n"
-
-
 
 #endif

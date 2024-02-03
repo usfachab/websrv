@@ -1,15 +1,17 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
-#include "include.hpp"
+#include "../include/include.hpp"
+#include "../request/HTTPRequest.hpp"
+#include "../response/HTTPResponse.hpp"
 
 class Server
 {
 private:
-	int		so, rc, maxSo, newSo, readyToReadSos, len;
+	int		so, rc, maxSo;
+	int		newSo, readyToReadSos, len;
 	int		serverEnd, close_conn;
 	char	buffer[ BUFFER_SIZE ];
 	fd_set	master_set, working_set;
-	std::map<std::string, std::string>	clientRequestMap;
 
 	struct	sockaddr_in	serverAddr, clientAddr;
 	socklen_t			clientAddrSize;
@@ -22,7 +24,6 @@ public:
 	void CheckReadableSockets( void );
 	void acceptIncomingConnections( void );
 	void recvAndSendClientData( int );
-	void clientRequestParse( std::string );
 };
 
 #endif

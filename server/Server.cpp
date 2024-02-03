@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include "HTTPRequest.hpp"
 
 Server::Server() : clientAddrSize ( sizeof( SAIN ) ), serverEnd ( FALSE ), close_conn ( FALSE )
 {
@@ -115,5 +114,6 @@ void Server::acceptIncomingConnections()
 void Server::recvAndSendClientData( int clientSocket )
 {
 	COUT( "Client socket is readable" );
-	HTTPRequest request( clientSocket );
+	HTTPRequest		request( clientSocket );
+	// HTTPResponse	response( clientSocket );
 }

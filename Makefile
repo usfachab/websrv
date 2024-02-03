@@ -6,7 +6,7 @@ OBJDIR  = obj
 
 # CPPFLAG = -Werror -Wall -Wextra -std=c++98 -g3 -fsanitize=address
 
-SRC     = main.cpp Server.cpp HTTPRequest.cpp
+SRC     = main.cpp ./server/Server.cpp ./request/HTTPRequest.cpp
 
 OBJ     = $(addprefix $(OBJDIR)/, $(SRC:.cpp=.o))
 

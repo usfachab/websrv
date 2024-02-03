@@ -14,9 +14,10 @@ HTTPRequest::~HTTPRequest() {}
 bool	HTTPRequest::appandClientRequest( int clientSocket )
 {
 	int rc;
-	bool once = TRUE;
 	char buffer[ BUFFER_SIZE ];
 
+	bool once = TRUE;
+	
 	COUT( "appand client request" );
 	while ( TRUE )
 	{
@@ -27,12 +28,12 @@ bool	HTTPRequest::appandClientRequest( int clientSocket )
 			clientRequest.append( buffer, rc );
 			if ( once == true && clientRequest.find( "100-continue" ) )
 			{
-				send( clientSocket, "HTTP/1.1 100 Continue\r\n\r\n", 26, NO_FLAG );
+				send( clientSocket, CONTINUE, 26, NO_FLAG );
 				once = FALSE;
 			}
-			if ( clientRequest.find( "\r\n\r\n" ) )
+			if ( clientRequest.find( CRLF ) )
 			{
-				body = clientRequest.substr( clientRequest.find( "\r\n\r\n" ) + 4 );
+				body.append( clientRequest.substr( clientRequest.find( CRLF ) + 4 ) );
 				break ;
 			}
 		}
@@ -42,7 +43,7 @@ bool	HTTPRequest::appandClientRequest( int clientSocket )
 	return ( GOOD );
 }
 
-bool	HTTPRequest::startParsingRequest( int clientSocket )
+bool	HTTPRequest::startParsingRequest( int clientSocket ) // need some optimization
 {
 	std::string			line;
 	std::vector<std::string> headers;
@@ -67,9 +68,8 @@ bool	HTTPRequest::startParsingRequest( int clientSocket )
 		parseHeaders( headers );
 	// body appanding
 	if ( contentLength > 0 )
-		parseBody( clientSocket, contentLength );
-	COUT( "body " + body );
-	return ( GOOD );
+		return parseBody( clientSocket, contentLength );
+	return ( CLOSESOCKET );
 }
 
 void	HTTPRequest::parseMethodAndURI( std::string& request_line )
@@ -106,16 +106,12 @@ bool HTTPRequest::parseHeaders( const std::vector<std::string>& header_lines )
 		}
 	}
 	return ( GOOD );
-	// for ( auto  &kv : headers )
-	// 	std::cout << kv.first << ": " << kv.second << std::endl;
 }
 
 bool HTTPRequest::parseBody( int clientSocket, size_t content_length )
 {
 	int rc;
 	char buffer[ BUFFER_SIZE ];
-	std::ofstream log;
-	log.open( "./logs" );
 
 	COUT( "Parsing body" );
 	while ( TRUE )
