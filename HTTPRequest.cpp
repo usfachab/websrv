@@ -23,15 +23,55 @@ void HTTPRequest::parseRequest( int clientSocket )
 		{
 			buffer[ rc ] = 0;
 			clientRequest.append( buffer, rc );
+			if ( once == true && clientRequest.find( "100-continue" ) )
+			{
+				send( clientSocket, "HTTP/1.1 100 Continue\r\n\r\n", 26, NO_FLAG );
+				once = false;
+			}
+			if ( clientRequest.find( "\r\n\r\n" ) )
+				break ;
 		}
 		else if ( rc <= 0 )
 		{
-			COUT( rc );
-			COUT( "recv finished" );
+			connClosed = TRUE;
 			break;
 		}
 	}
-	COUT( clientRequest );
+	// start parsing the request
+	if ( connClosed == TRUE )
+		close( clientSocket );
+	else
+	{
+		std::string			line;
+		std::stringstream	data( clientRequest );
+
+		if ( ! std::getline( data, line, '\r' ) )
+			connClosed = TRUE;
+		// parsing Method, URI and version
+		if ( connClosed == FALSE )
+		{
+			parseMethodAndURI( line );
+			// parsing headers
+			while ( std::getline( data, line ) && line != "\r" )
+			{
+				if ( !line.empty() && line.back() == '\r' )
+					line.pop_back();
+				headers.push_back( line );
+			}
+			if ( headers.size() <= 0 )
+				connClosed = TRUE;
+			else
+				parseHeaders( headers );
+			if ( contentLength > 0 )
+				parseBody( clientSocket, contentLength );
+			COUT( body );
+		}
+		else
+		{
+			connClosed = TRUE;
+			close( clientSocket );
+		}
+	}
 }
 
 void HTTPRequest::parseMethodAndURI( const std::string& request_line )
