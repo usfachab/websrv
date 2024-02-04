@@ -3,29 +3,34 @@
 class HTTPRequest 
 {
 public:
-    HTTPRequest( int clientSocket );
+    HTTPRequest( int );
     // std::string getMethod() const;
     // std::string getURI() const;
     // std::string getHeader( const std::string& header_name ) const;
     // std::string getBody() const;
 	// int			getConnectionStatus();
 	~HTTPRequest();
+	int getClientSocket()
+	{
+		return ( clientSocket );
+	}
 
 private:
-    std::string uri;
-    std::string body;
-    std::string method;
-	std::string version;
-	std::string	clientRequest;
+	int clientSocket;
+    // std::string uri;
+    // std::string body;
+    // std::string method;
+	// std::string version;
+	// std::string	clientRequest;
 
-	bool		connClosed;
-	int			contentLength;
+	// bool		connClosed;
+	// int			contentLength;
 
-    std::map<std::string, std::string> headers;
+    // std::map<std::string, std::string> headers;
 
-	bool			appandClientRequest( int );
-	bool			startParsingRequest( int );
-    void 			parseMethodAndURI( std::string& );
-    bool 			parseHeaders( const std::vector<std::string>& );
-    bool 			parseBody( int , size_t );
+	// void			appandClientRequest( int );
+	// void			startParsingRequest( int );
+    // void 			parseMethodAndURI( std::string& );
+    // void 			parseHeaders( const std::vector<std::string>& );
+    // void 			parseBody( int , size_t );
 };

@@ -98,22 +98,25 @@ void Server::CheckReadableSockets( void )
 
 void Server::acceptIncomingConnections()
 {
-	do
+	while ( TRUE )
 	{
 		// accept every incoming connection and add each one to the master_set for monitoring by select
 		newSo = accept( so, ( SA * )&clientAddr, &clientAddrSize );
-		ERROR( "accept", newSo );
+		if ( newSo == -1 )
+			break ;
 		FD_SET( newSo, &master_set );
-		// COUT( "New incoming connection accepted and added to master_set" );
+		HTTPRequest clientData( newSo );
+		clientObject.insert( std::pair<int, HTTPRequest&>( newSo, clientData ) );
 		if ( newSo > maxSo )
 			maxSo = newSo;
-		
-	} while ( newSo != -1 );
+	}
 }
 
-void Server::recvAndSendClientData( int clientSocket )
+void Server::recvAndSendClientData( int clientSocket  )
 {
-	COUT( "Client socket is readable" );
-	HTTPRequest		request( clientSocket );
-	// HTTPResponse	response( clientSocket );
+	//while ( 1 );
+	// std::cout << "Client socket is readable: " << clientSocket << std::endl;
+	for ( auto &kv : clientObject )
+		std::cout << "Client socket: " << kv.first << std::endl;
+	exit(1);
 }

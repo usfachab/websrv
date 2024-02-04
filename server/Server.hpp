@@ -16,6 +16,9 @@ private:
 	struct	sockaddr_in	serverAddr, clientAddr;
 	socklen_t			clientAddrSize;
 	struct timeval      timeout;
+
+	std::map<int, HTTPRequest&> clientObject;
+
 public:
 	Server();
 	~Server();
