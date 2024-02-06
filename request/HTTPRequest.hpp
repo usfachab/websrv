@@ -9,7 +9,6 @@ public:
     std::string getMethod() const;
     std::string getURI() const;
 	std::string getVersion() const;
-    std::string getBody() const;
     std::string getHeader() const;
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
@@ -18,8 +17,8 @@ private:
     std::string 	method;
     std::string 	uri;
 	std::string 	version;
-    std::string 	body;
 	std::string		clientRequest;
+	FILE*			body;
 
 	bool			connStatus;
 	bool 			headerEnd;

@@ -118,7 +118,7 @@ void Server::recvAndSendClientData( int clientSocket  )
 	std::map<int , HTTPRequest>::iterator it;
 	it = clientObject.find( clientSocket );
 	it->second.startParsingRequest();
-	COUT( it->second.getBody() );
+	// COUT( it->second.getBody() );
 	if ( !( it->second.getConnectionStatus()) )
 		serverEnd = TRUE;
 	// for ( auto &kv : clientObject )

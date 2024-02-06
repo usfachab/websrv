@@ -6,6 +6,7 @@ HTTPRequest::HTTPRequest( int clientSock )
 	headerEnd		=	FALSE;
 	connStatus		=	TRUE;
 	contentLength	=	0;
+	body = fopen( "./folder/body.txt", "rw" );
 }
 
 HTTPRequest::~HTTPRequest() {}
@@ -27,7 +28,8 @@ void	HTTPRequest::startParsingRequest()
 			if ( clientRequest.find( CRLF ) != npos )
 			{
 				headerEnd = TRUE;
-				body.append( clientRequest.substr( clientRequest.find( CRLF ) + 4 ) );
+				// body << clientRequest.substr( clientRequest.find( CRLF ) + 4 );
+				fput( clientRequest.substr( clientRequest.find( CRLF ) + 4 ).c_str(), body);
 				startParsingHeaders();
 			}
 		}
@@ -118,7 +120,7 @@ void HTTPRequest::parseBody( size_t content_length )
 	if ( rc > 0 )
 	{
 		buffer[ rc ] = 0;
-		body.append( buffer, rc );
+		// body << buffer;
 	}
 	else
 		connStatus = FALSE;
@@ -139,10 +141,10 @@ std::string HTTPRequest::getVersion() const
 	return ( version );
 }
 
-std::string HTTPRequest::getBody() const
-{
-	return ( body );
-}
+// std::string HTTPRequest::getBody() const
+// {
+// 	return ( body );
+// }
 
 bool HTTPRequest::getConnectionStatus() const
 {
