@@ -80,7 +80,6 @@ void Server::CheckReadableSockets( void )
 		TIME_OUT( rc );
 
 		readyToReadSos = rc;
-
 		for ( int i = 0; i <= maxSo && readyToReadSos > 0; ++i )
 		{
 			if ( FD_ISSET( i, &working_set ) )
@@ -88,7 +87,7 @@ void Server::CheckReadableSockets( void )
 				readyToReadSos--;
 				if ( i == so ) // for accepting the incoming connections
 					acceptIncomingConnections();
-				else
+				else if ( !serverEnd )
 					recvAndSendClientData( i );
 			}
 		}
@@ -119,11 +118,9 @@ void Server::recvAndSendClientData( int clientSocket  )
 	std::map<int , HTTPRequest>::iterator it;
 	it = clientObject.find( clientSocket );
 	it->second.startParsingRequest();
-	if ( !it->second.getConnectionStatus() )
-	{
-		it->second.getBody();
+	COUT( it->second.getBody() );
+	if ( !( it->second.getConnectionStatus()) )
 		serverEnd = TRUE;
-	}
 	// for ( auto &kv : clientObject )
 	// {
 	// 	// std::cout << "Client Method: " << kv.second.getMethod() << std::endl;

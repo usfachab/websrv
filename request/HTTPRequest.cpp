@@ -31,11 +31,14 @@ void	HTTPRequest::startParsingRequest()
 				startParsingHeaders();
 			}
 		}
-		else if ( rc <= 0 )
+		else
 			connStatus = FALSE;
 	}
 	else if ( contentLength > 0 )
+	{
+		COUT( contentLength );
 		parseBody( contentLength );
+	}
 }
 
 void	HTTPRequest::startParsingHeaders()
@@ -75,12 +78,11 @@ void HTTPRequest::parseHeaders()
 	std::string									second;
 	std::vector<std::string>					header_lines;
 	std::vector<std::string>::const_iterator	it;
+	std::stringstream							headerStream ( clientRequest );
 
 	COUT( "Parsing Headers");
 	try
 	{
-		std::stringstream	headerStream ( clientRequest );
-
 		std::getline( headerStream, line );
 		while ( std::getline( headerStream, line ) && line != "\r" )
 		{
@@ -112,16 +114,14 @@ void HTTPRequest::parseBody( size_t content_length )
 
 	COUT( "Parsing body" );
 	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+	COUT( rc );
 	if ( rc > 0 )
 	{
 		buffer[ rc ] = 0;
 		body.append( buffer, rc );
 	}
-	else if ( rc <= 0 )
-	{
-		COUT(" END:  ")
+	else
 		connStatus = FALSE;
-	}
 }
 
 std::string HTTPRequest::getMethod() const
