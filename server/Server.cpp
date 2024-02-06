@@ -106,7 +106,7 @@ void Server::acceptIncomingConnections()
 			break ;
 		FD_SET( newSo, &master_set );
 		HTTPRequest clientData( newSo );
-		clientObject.insert( std::pair<int, HTTPRequest&>( newSo, clientData ) );
+		clientObject.insert( std::pair<int, HTTPRequest>( newSo, clientData ) );
 		if ( newSo > maxSo )
 			maxSo = newSo;
 	}
@@ -116,7 +116,27 @@ void Server::recvAndSendClientData( int clientSocket  )
 {
 	//while ( 1 );
 	// std::cout << "Client socket is readable: " << clientSocket << std::endl;
-	for ( auto &kv : clientObject )
-		std::cout << "Client socket: " << kv.first << std::endl;
-	exit(1);
+	std::map<int , HTTPRequest>::iterator it;
+	it = clientObject.find( clientSocket );
+	it->second.startParsingRequest();
+	if ( !it->second.getConnectionStatus() )
+	{
+		it->second.getBody();
+		serverEnd = TRUE;
+	}
+	// for ( auto &kv : clientObject )
+	// {
+	// 	// std::cout << "Client Method: " << kv.second.getMethod() << std::endl;
+	// 	// std::cout << "Client URI: " << kv.second.getURI() << std::endl;
+	// 	// std::cout << "Client Version: " << kv.second.getVersion() << std::endl;
+	// 	COUT( kv.second.getBody() );
+	// 	break ;
+	// }
 }
+
+
+
+
+
+
+

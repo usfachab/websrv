@@ -1,16 +1,158 @@
 #include "HTTPRequest.hpp"
 
-HTTPRequest::HTTPRequest( int clientSock ) : clientSocket ( clientSock )
+HTTPRequest::HTTPRequest( int clientSock )
 {
-	// connClosed = appandClientRequest( clientSocket );
-	// CLOSE( connClosed, clientSocket );
-
-	// connClosed = startParsingRequest( clientSocket );
-	// CLOSE( connClosed, clientSocket );
+	clientSocket	=	clientSock;
+	headerEnd		=	FALSE;
+	connStatus		=	TRUE;
+	contentLength	=	0;
 }
 
 HTTPRequest::~HTTPRequest() {}
 
+void	HTTPRequest::startParsingRequest()
+{
+	int rc;
+	char buffer[ BUFFER_SIZE ];
+	std::string startLine;
+	const size_t npos = -1;
+
+	if ( !headerEnd )
+	{
+		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+		if ( rc > 0 )
+		{
+			buffer[ rc ] = 0;
+			clientRequest.append( buffer, rc );
+			if ( clientRequest.find( CRLF ) != npos )
+			{
+				headerEnd = TRUE;
+				body.append( clientRequest.substr( clientRequest.find( CRLF ) + 4 ) );
+				startParsingHeaders();
+			}
+		}
+		else if ( rc <= 0 )
+			connStatus = FALSE;
+	}
+	else if ( contentLength > 0 )
+		parseBody( contentLength );
+}
+
+void	HTTPRequest::startParsingHeaders()
+{
+	parseMethodAndURI();
+	parseHeaders();
+}
+
+
+void	HTTPRequest::parseMethodAndURI()
+{
+	COUT( "Parsing start line" );
+	std::string startLine;
+
+	try
+	{
+		startLine = clientRequest.substr(0, clientRequest.find( "\r\n" ) );
+
+		if ( !startLine.empty() && startLine.back() == '\r' )
+			startLine.pop_back();
+		method	=	startLine.substr( 0, startLine.find_first_of( ' ' )  );
+		uri		=	startLine.substr( method.length() + 1, 1 );
+		version =	startLine.substr( method.length() + uri.length() + 2, startLine.find_first_of( '\r' ) );
+	}
+	catch(const std::exception& e)
+	{
+		connStatus = FALSE;
+		std::cerr << e.what() << '\n';
+	}
+	
+}
+
+void HTTPRequest::parseHeaders()
+{
+	std::string									line;
+	std::string									first;
+	std::string									second;
+	std::vector<std::string>					header_lines;
+	std::vector<std::string>::const_iterator	it;
+
+	COUT( "Parsing Headers");
+	try
+	{
+		std::stringstream	headerStream ( clientRequest );
+
+		std::getline( headerStream, line );
+		while ( std::getline( headerStream, line ) && line != "\r" )
+		{
+			if ( !line.empty() && line.back() == '\r' )
+				line.pop_back();
+			header_lines.push_back( line );
+		}
+
+		for ( it = header_lines.begin(); it != header_lines.end(); ++it )
+		{
+			first	=	it->substr( 0, it->find_first_of( ':' ) );
+			second	=	it->substr( it->find_first_of( ' ' ) + 1 );
+			if ( first == "Content-Length" )
+				contentLength = std::atoi( second.c_str() );
+			headers[ first ] = second;
+		}
+	}
+	catch(const std::exception& e)
+	{
+		connStatus = FALSE;
+		std::cerr << e.what() << '\n';
+	}
+}
+
+void HTTPRequest::parseBody( size_t content_length )
+{
+	int rc;
+	char buffer[ BUFFER_SIZE ];
+
+	COUT( "Parsing body" );
+	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+	if ( rc > 0 )
+	{
+		buffer[ rc ] = 0;
+		body.append( buffer, rc );
+	}
+	else if ( rc <= 0 )
+	{
+		COUT(" END:  ")
+		connStatus = FALSE;
+	}
+}
+
+std::string HTTPRequest::getMethod() const
+{
+	return ( method );
+}
+
+std::string HTTPRequest::getURI() const
+{
+	return ( uri );
+}
+
+std::string HTTPRequest::getVersion() const
+{
+	return ( version );
+}
+
+std::string HTTPRequest::getBody() const
+{
+	return ( body );
+}
+
+bool HTTPRequest::getConnectionStatus() const
+{
+	return ( connStatus );
+}
+
+// std::string getHeader( const std::string& header_name ) const
+// {
+
+// }
 // bool	HTTPRequest::appandClientRequest( int clientSocket )
 // {
 // 	int rc;
@@ -36,103 +178,3 @@ HTTPRequest::~HTTPRequest() {}
 // 		return ( CLOSESOCKET );
 // 	return ( GOOD );
 // }
-
-// bool	HTTPRequest::startParsingRequest( int clientSocket ) // need some optimization
-// {
-// 	std::string			line;
-// 	std::vector<std::string> headers;
-// 	std::stringstream	data( clientRequest );
-
-// 	COUT( "start parsing request" );
-// 	if ( !std::getline( data, line, '\n' ) )
-// 		return ( CLOSESOCKET );
-// 	else
-// 		parseMethodAndURI( line );
-// 	// create a headers lines vector
-// 	while ( std::getline( data, line ) && line != "\r" )
-// 	{
-// 		if ( !line.empty() && line.back() == '\r' )
-// 			line.pop_back();
-// 		headers.push_back( line );
-// 	}
-// 	// turn vector to map
-// 	if ( headers.size() <= 0 )
-// 		return ( CLOSESOCKET );
-// 	else
-// 		parseHeaders( headers );
-// 	// body appanding
-// 	if ( contentLength > 0 )
-// 		return parseBody( clientSocket, contentLength );
-// 	return ( CLOSESOCKET );
-// }
-
-// void	HTTPRequest::parseMethodAndURI( std::string& request_line )
-// {
-// 	COUT( "Parsing start line" );
-
-// 	if ( !request_line.empty() && request_line.back() == '\r' )
-// 		request_line.pop_back();
-// 	method	=	request_line.substr( 0, request_line.find_first_of( ' ' )  );
-// 	uri		=	request_line.substr( method.length() + 1, 1 );
-// 	version =	request_line.substr( method.length() + uri.length() + 2, request_line.find_first_of( '\r' ) );
-// }
-
-// bool HTTPRequest::parseHeaders( const std::vector<std::string>& header_lines )
-// {
-// 	std::vector<std::string>::const_iterator it;
-// 	std::string	first;
-// 	std::string	second;
-
-// 	COUT( "Parsing Headers" );
-// 	for ( it = header_lines.begin(); it != header_lines.end(); ++it )
-// 	{
-// 		try
-// 		{
-// 			first	=	it->substr( 0, it->find_first_of( ':' ) );
-// 			second	=	it->substr( it->find_first_of( ' ' ) + 1 );
-// 			if ( first == "Content-Length" )
-// 				contentLength = std::atoi( second.c_str() );
-// 			headers[ first ] = second;
-// 		}
-// 		catch( const std::exception& e )
-// 		{
-// 			return ( CLOSESOCKET );
-// 		}
-// 	}
-// 	return ( GOOD );
-// }
-
-// bool HTTPRequest::parseBody( int clientSocket, size_t content_length )
-// {
-// 	int rc;
-// 	char buffer[ BUFFER_SIZE ];
-
-// 	COUT( "Parsing body" );
-// 	while ( TRUE )
-// 	{
-// 		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-// 		if ( rc > 0 )
-// 		{
-// 			buffer[ rc ] = 0;
-// 			body.append( buffer, rc );
-// 		}
-// 		else if ( rc <= 0 )
-// 			return ( CLOSESOCKET );
-// 	}
-// 	return ( GOOD );
-// }
-
-// std::string HTTPRequest::getMethod() const
-// {
-
-// }
-
-//  std::string HTTPRequest::getMethod() const
-//  {
-
-//  }
-
-//  std::string HTTPRequest::getURI() const
-//  {
-
-//  }

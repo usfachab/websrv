@@ -4,33 +4,32 @@ class HTTPRequest
 {
 public:
     HTTPRequest( int );
-    // std::string getMethod() const;
-    // std::string getURI() const;
-    // std::string getHeader( const std::string& header_name ) const;
-    // std::string getBody() const;
-	// int			getConnectionStatus();
 	~HTTPRequest();
-	int getClientSocket()
-	{
-		return ( clientSocket );
-	}
+
+    std::string getMethod() const;
+    std::string getURI() const;
+	std::string getVersion() const;
+    std::string getBody() const;
+    std::string getHeader() const;
+	bool		getConnectionStatus() const;
+	void		startParsingRequest();
 
 private:
-	int clientSocket;
-    // std::string uri;
-    // std::string body;
-    // std::string method;
-	// std::string version;
-	// std::string	clientRequest;
+    std::string 	method;
+    std::string 	uri;
+	std::string 	version;
+    std::string 	body;
+	std::string		clientRequest;
 
-	// bool		connClosed;
-	// int			contentLength;
+	bool			connStatus;
+	bool 			headerEnd;
+	size_t			contentLength;
+	unsigned int	clientSocket;
 
-    // std::map<std::string, std::string> headers;
+    std::map<std::string, std::string> headers;
 
-	// void			appandClientRequest( int );
-	// void			startParsingRequest( int );
-    // void 			parseMethodAndURI( std::string& );
-    // void 			parseHeaders( const std::vector<std::string>& );
-    // void 			parseBody( int , size_t );
+	void			startParsingHeaders();
+    void 			parseMethodAndURI();
+    void 			parseHeaders();
+    void 			parseBody( size_t );
 };

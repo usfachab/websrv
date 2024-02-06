@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 
 git: fclean
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : multiplexing problem came up"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : Reconstructed, body end problem"
 	git push
 
 .PHONY: clean fclean re

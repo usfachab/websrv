@@ -16,7 +16,6 @@
 #include <fstream>
 #include <vector>
 
-
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
 #define CRLF				"\r\n\r\n"
 #define GOOD				FALSE
