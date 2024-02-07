@@ -88,7 +88,7 @@ void Server::CheckReadableSockets( void )
 				if ( i == so ) // for accepting the incoming connections
 					acceptIncomingConnections();
 				else if ( !serverEnd )
-					recvAndSendClientData( i );
+					recvAndSendClientData( i, &master_set );
 			}
 		}
 	} while ( serverEnd == FALSE );
@@ -111,7 +111,7 @@ void Server::acceptIncomingConnections()
 	}
 }
 
-void Server::recvAndSendClientData( int clientSocket  )
+void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 {
 	//while ( 1 );
 	// std::cout << "Client socket is readable: " << clientSocket << std::endl;
@@ -119,8 +119,11 @@ void Server::recvAndSendClientData( int clientSocket  )
 	it = clientObject.find( clientSocket );
 	it->second.startParsingRequest();
 	// COUT( it->second.getBody() );
-	if ( !( it->second.getConnectionStatus()) )
-		serverEnd = TRUE;
+	// if ( !( it->second.getConnectionStatus() ) )
+	// {
+	// 	FD_CLR( clientSocket, master_set );
+	// 	shutdown( clientSocket, SHUT_WR );
+	// }
 	// for ( auto &kv : clientObject )
 	// {
 	// 	// std::cout << "Client Method: " << kv.second.getMethod() << std::endl;

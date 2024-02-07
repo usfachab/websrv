@@ -1,6 +1,6 @@
 TARGET  = a.out
 
-CC      = c++
+CC      = c++ -fsanitize=address -g3
 
 OBJDIR  = obj
 

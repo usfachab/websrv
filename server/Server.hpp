@@ -26,7 +26,7 @@ public:
 	void serverAddrInit( void );
 	void CheckReadableSockets( void );
 	void acceptIncomingConnections( void );
-	void recvAndSendClientData( int );
+	void recvAndSendClientData( int, fd_set* );
 };
 
 #endif

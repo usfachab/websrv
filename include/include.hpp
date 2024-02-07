@@ -17,6 +17,7 @@
 #include <vector>
 #include <utility>
 #include <functional>
+#include <stdio.h>
 
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
 #define CRLF				"\r\n\r\n"

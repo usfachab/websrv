@@ -12,13 +12,14 @@ public:
     std::string getHeader() const;
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
-
+	std::string	fileNameGen() const;
 private:
     std::string 	method;
     std::string 	uri;
 	std::string 	version;
 	std::string		clientRequest;
-	FILE*			body;
+	int				bodyFile;
+
 
 	bool			connStatus;
 	bool 			headerEnd;

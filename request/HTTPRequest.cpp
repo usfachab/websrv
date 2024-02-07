@@ -2,14 +2,26 @@
 
 HTTPRequest::HTTPRequest( int clientSock )
 {
+	std::string	path ( "./request/folder/" + fileNameGen() );
 	clientSocket	=	clientSock;
 	headerEnd		=	FALSE;
 	connStatus		=	TRUE;
 	contentLength	=	0;
-	body = fopen( "./folder/body.txt", "rw" );
+	bodyFile		= open( path.c_str() , O_CREAT | O_RDWR, 0666 );
 }
 
 HTTPRequest::~HTTPRequest() {}
+
+std::string HTTPRequest::fileNameGen() const
+{
+	const std::string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	std::srand( std::time( NULL ) );
+	std::string	filename;
+
+	for ( int i = 0; i < 25; i++ )
+		filename += CHARACTERS[ rand() % CHARACTERS.length() ];
+	return ( filename );
+}
 
 void	HTTPRequest::startParsingRequest()
 {
@@ -17,7 +29,9 @@ void	HTTPRequest::startParsingRequest()
 	char buffer[ BUFFER_SIZE ];
 	std::string startLine;
 	const size_t npos = -1;
+	std::string	bodyRest;
 
+	COUT( "startParsingRequest" );
 	if ( !headerEnd )
 	{
 		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
@@ -28,19 +42,17 @@ void	HTTPRequest::startParsingRequest()
 			if ( clientRequest.find( CRLF ) != npos )
 			{
 				headerEnd = TRUE;
-				// body << clientRequest.substr( clientRequest.find( CRLF ) + 4 );
-				fput( clientRequest.substr( clientRequest.find( CRLF ) + 4 ).c_str(), body);
+				bodyRest = clientRequest.substr( clientRequest.find( CRLF ) + 4 );
+				if ( !bodyRest.empty() )
+					write( bodyFile,  bodyRest.c_str(), bodyRest.length() );
 				startParsingHeaders();
 			}
 		}
 		else
 			connStatus = FALSE;
 	}
-	else if ( contentLength > 0 )
-	{
-		COUT( contentLength );
+	if ( contentLength > 0 )
 		parseBody( contentLength );
-	}
 }
 
 void	HTTPRequest::startParsingHeaders()
@@ -120,7 +132,8 @@ void HTTPRequest::parseBody( size_t content_length )
 	if ( rc > 0 )
 	{
 		buffer[ rc ] = 0;
-		// body << buffer;
+		write( bodyFile, buffer,  rc );
+		COUT( "Hello There we enter here" );
 	}
 	else
 		connStatus = FALSE;
