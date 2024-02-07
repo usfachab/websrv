@@ -21,14 +21,15 @@ clean:
 	@rm -f $(OBJ)
 
 fclean: clean
+	@rm -f request/folder/*
 	@rm -fr $(TARGET) $(OBJDIR)
 
 re: fclean $(TARGET)
 
 git: fclean
-	@rm request/folder/*
+	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : revived after delete"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : start parsing query strings"
 	git push
 
 .PHONY: clean fclean re

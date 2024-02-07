@@ -9,10 +9,10 @@ public:
     std::string getMethod() const;
     std::string getURI() const;
 	std::string getVersion() const;
-    std::string getHeader() const;
+	std::string	fileNameGen() const;
+    std::string getHeaders( const std::string& ) const;
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
-	std::string	fileNameGen() const;
 private:
     std::string 	method;
     std::string 	uri;
@@ -23,13 +23,15 @@ private:
 
 	bool			connStatus;
 	bool 			headerEnd;
-	size_t			contentLength;
 	unsigned int	clientSocket;
 
+	size_t			contentLength;
+	size_t 			npos;
     std::map<std::string, std::string> headers;
+	std::map<std::string, std::string> query;
 
-	void			startParsingHeaders();
     void 			parseMethodAndURI();
     void 			parseHeaders();
+	void			validateUriAndParseQueries();
     void 			parseBody( size_t );
 };

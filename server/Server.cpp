@@ -113,23 +113,20 @@ void Server::acceptIncomingConnections()
 
 void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 {
-	//while ( 1 );
-	// std::cout << "Client socket is readable: " << clientSocket << std::endl;
 	std::map<int , HTTPRequest>::iterator it;
-	it = clientObject.find( clientSocket );
-	it->second.startParsingRequest();
-	// COUT( it->second.getBody() );
-	// if ( !( it->second.getConnectionStatus() ) )
-	// {
-	// 	FD_CLR( clientSocket, master_set );
-	// 	shutdown( clientSocket, SHUT_WR );
-	// }
-	// for ( auto &kv : clientObject )
-	// {
-	// 	// std::cout << "Client Method: " << kv.second.getMethod() << std::endl;
-	// 	// std::cout << "Client URI: " << kv.second.getURI() << std::endl;
-	// 	// std::cout << "Client Version: " << kv.second.getVersion() << std::endl;
-	// 	COUT( kv.second.getBody() );
-	// 	break ;
-	// }
+
+	try
+	{
+		it = clientObject.find( clientSocket );
+		it->second.startParsingRequest();
+		std::cout << it->second.getURI() << std::endl;
+	}
+	catch( const std::exception& e )
+	{
+		FD_CLR( clientSocket, master_set );
+		shutdown( clientSocket, SHUT_WR );
+		std::cerr << e.what() << '\n';
+	}
+	
+	
 }
