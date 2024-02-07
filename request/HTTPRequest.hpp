@@ -28,7 +28,7 @@ private:
 	size_t			contentLength;
 	size_t 			npos;
     std::map<std::string, std::string> headers;
-	std::map<std::string, std::string> query;
+	std::map<std::string, std::string> queries;
 
     void 			parseMethodAndURI();
     void 			parseHeaders();

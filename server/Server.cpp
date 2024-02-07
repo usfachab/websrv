@@ -119,7 +119,6 @@ void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 	{
 		it = clientObject.find( clientSocket );
 		it->second.startParsingRequest();
-		std::cout << it->second.getURI() << std::endl;
 	}
 	catch( const std::exception& e )
 	{

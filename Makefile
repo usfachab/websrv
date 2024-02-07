@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : start parsing query strings"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : end parsing query strings need some testing"
 	git push
 
 .PHONY: clean fclean re

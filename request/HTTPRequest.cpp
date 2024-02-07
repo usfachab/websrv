@@ -46,7 +46,7 @@ void	HTTPRequest::startParsingRequest()
 				if ( !bodyRest.empty() )
 					write( bodyFile,  bodyRest.c_str(), bodyRest.length() );
 				parseMethodAndURI();
-				parseQueries();
+				validateUriAndParseQueries();
 				parseHeaders();
 			}
 		}
@@ -85,23 +85,51 @@ void	HTTPRequest::validateUriAndParseQueries()
 {
 	if ( !uri.empty() )
 	{
-		// chack if it starts with forward slash 
+		
+		std::string	query;
+		std::string param;
+		// std::string	key;
+		// std::string value;
+		size_t		queryStrigStartPos = uri.find_first_of( '?' );
+
 		if ( uri.front() != '/' )
 			throw std::invalid_argument( "bad request: missing / at the start of uri" );
 		if ( std::count( uri.begin(), uri.end(), ' ' ) != 0 )
 			throw std::invalid_argument( "bad request: uri contain space" );
+		if ( uri.length() > 1024 )
+			throw std::invalid_argument( "bad request: uri length exceeted the limit" );
 		
-		// size_t	queryStrigStart = uri.find_first_of( '?' );
+		if ( uri.find_first_of( '?' ) != npos )
+		{
+			query	=	uri.substr( queryStrigStartPos + 1 );
+			uri.resize( uri.length() - ( query.length() + 1 ) );
+			if ( !query.empty() )
+			{
+				std::stringstream ss( query );
+				size_t numberOfQueries = std::count( query.begin(), query.end(), '&' ) + 1;
 
-		// if ( uri.length() > 6000 )
-		// 	throw std::invalid_argument( "uri length exceeted the limit which is 6000 character" );
-		// if ( std::count( uri.begin(), uri.end(), '?' ) > 1 )
-		// 	throw std::invalid_argument( "invalid uri: using a reserved delemiter" );
-		// if ( uri.find_first_of( '?' ) != npos )
-		// {
-		// 	queryStrigStart++;
-		// 	COUT( uri.substr( queryStrigStart ) );
-		// }
+				for ( int i = 0; i <  numberOfQueries; i++)
+				{
+					std::getline( ss, param, '&' );
+					COUT( "Param: " + param );
+					if ( !param.empty() )
+					{
+						size_t	equalPos = param.find_first_of( '=' );
+						if ( equalPos != npos )
+						{
+							std::string key		( param.substr( 0, equalPos ) );
+							std::string value	( param.substr( key.length() + 1 , param.length() - ( key.length() + 1 ) ) );
+
+							queries.insert( std::pair<std::string, std::string>( key, value ) );
+						}
+						else
+							queries.insert( std::pair<std::string, std::string>( param, "" ) );
+					}
+				}
+			}
+		}
+		for ( auto &kv : queries )
+			std::cout << "key: " << kv.first << " second: " << kv.second << std::endl;
 	}
 	else
 		throw std::invalid_argument( "empty uri" );
