@@ -119,11 +119,11 @@ void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 	{
 		it = clientObject.find( clientSocket );
 		it->second.startParsingRequest();
+		FD_CLR( clientSocket, master_set );
+		shutdown( clientSocket, SHUT_WR );
 	}
 	catch( const std::exception& e )
 	{
-		FD_CLR( clientSocket, master_set );
-		shutdown( clientSocket, SHUT_WR );
 		std::cerr << e.what() << '\n';
 	}
 	

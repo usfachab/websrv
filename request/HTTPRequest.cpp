@@ -2,19 +2,19 @@
 
 HTTPRequest::HTTPRequest( int clientSock )
 {
-	COUT( "HTTPRequest constructor called" );
 	contentLength		=	FALSE;
 	connStatus			=	TRUE;
 	headerEnd			=	FALSE;
-	clientSocket		=	clientSock;
 	chunkedEncoding     =   FALSE;
-	// std::string	path	=	"./request/folder/" + fileNameGen();
-	// bodyFile			= 	open( path.c_str() , O_CREAT | O_RDWR, 0666 );
+	ignoreBody			=	FALSE;
+	clientSocket		=	clientSock;
+	// !std::string	path	=	"./request/folder/" + fileNameGen();
+	// !bodyFile			= 	open( path.c_str() , O_CREAT | O_RDWR, 0666 );
 }
 
 HTTPRequest::~HTTPRequest() {}
 
-std::string HTTPRequest::fileNameGen() const
+std::string HTTPRequest::randomFileNameGen()
 {
 	const std::string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	std::srand( std::time( NULL ) );
@@ -27,35 +27,6 @@ std::string HTTPRequest::fileNameGen() const
 
 void	HTTPRequest::startParsingRequest()
 {
-	// int rc;
-	// char buffer[ BUFFER_SIZE ];
-	// std::string	bodyRest;
-
-	// if ( !headerEnd )
-	// {
-	// 	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-	// 	if ( rc > 0 )
-	// 	{
-	// 		buffer[ rc ] = 0;
-	// 		clientRequest.append( buffer, rc );
-	// 		if ( clientRequest.find( CRLF ) != std::string::npos )
-	// 		{
-	// 			headerEnd = TRUE;
-	// 			bodyRest = clientRequest.substr( clientRequest.find( CRLF ) + 4 );
-	// 			if ( !bodyRest.empty() )
-	// 				write( bodyFile,  bodyRest.c_str(), bodyRest.length() );
-	// 			parseMethodAndURI();
-	// 			validateUriAndParseQueries();
-	// 			parseHeaders();
-	// 		}
-	// 	}
-	// }
-	// else if ( rc == -1 )
-	// 	throw std::invalid_argument( "recv failed" );
-	// else
-	// 	throw std::invalid_argument( "client close connection" );
-
-	COUT( "start Parsing Client Request" );
 	if ( headerEnd == FALSE )
 		receiveHeader();
 	if ( headerEnd == TRUE )
@@ -64,15 +35,16 @@ void	HTTPRequest::startParsingRequest()
 		validateUriAndParseQueries();
 		parseHeaders();
 	}
-	if ( chunkedEncoding == TRUE )
-		COUT( "Chunked" ); // parseChunkedBody
-	// else if ( contentLength > 0 )
-	// 	parseBody( contentLength );
+	if ( chunkedEncoding == TRUE && ignoreBody == FALSE )
+		COUT( "Chunked" ); // *parseChunkedBody
+	if ( contentLength > 0 && ignoreBody == FALSE )
+		COUT( "normal body" ); // !cuation with bodYrest
+	output();
 }
 
 void	HTTPRequest::receiveHeader()
 {
-	int rc;
+	int		rc;
 	char	buffer[ BUFFER_SIZE ];
 
 	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
@@ -81,10 +53,7 @@ void	HTTPRequest::receiveHeader()
 		buffer[ rc ] = 0;
 		clientRequest.append( buffer, rc );
 		if ( clientRequest.find( CRLF ) != std::string::npos )
-		{
 			headerEnd = TRUE;
-			// rest of body
-		}
 	}
 	else if ( rc == -1 )
 		throw std::invalid_argument( "recv failed" );
@@ -96,120 +65,70 @@ void	HTTPRequest::parseMethodAndURI()
 {
 	std::string startLine;
 
-	COUT( "Parsing start line" );
+	// COUT( "Parsing start line" );
 	try
 	{
 		startLine = clientRequest.substr( 0, clientRequest.find( "\r\n" ) );
-
 		if ( !startLine.empty() && startLine.back() == '\r' )
 			startLine.pop_back();
-		method	=	startLine.substr( 0, startLine.find_first_of( ' ' )  );
+		method	=	startLine.substr( 0, startLine.find( ' ' )  );
 		uri		=	startLine.substr( method.length() + 1, startLine.find_last_of( ' ' ) -  method.length() - 1 );
 		version =	startLine.substr( method.length() + uri.length() + 2 );
+		if ( method == "GET" )
+			ignoreBody = TRUE;
+		if ( method.empty() || uri.empty() || version.empty() )
+			throw std::exception();
 	}
 	catch( const std::exception& e )
 	{
-		throw std::invalid_argument( "Parsing start line failed" );
+		throw std::invalid_argument( "Bad request: Parsing start line failed" );
 	}
 }
 
-// void HTTPRequest::validateUriAndParseQueries() {
-//     validateUri();
-//     parseQueryString();
-// }
-
-// void HTTPRequest::validateUri()
-// {
-//     if ( uri.empty() )
-//         throw std::invalid_argument("Empty URI");
-
-//     if ( uri.front() != '/' )
-//         throw std::invalid_argument("Bad request: missing / at the start of URI");
-
-//     if ( uri.find(' ') != std::string::npos )
-//         throw std::invalid_argument("Bad request: URI contains space");
-
-//     if ( uri.length() > 1024 )
-//         throw std::invalid_argument("Bad request: URI length exceeded the limit");
-// }
-
-// void HTTPRequest::parseQueryString()
-// {
-//     size_t queryPos = uri.find('?');
-
-//     if ( queryPos != std::string::npos )
-// 	{
-//         std::string queryString = uri.substr( queryPos + 1 );
-//         uri = uri.substr( 0, queryPos );
-//         splitAndStoreQueries( queryString );
-//     }
-// }
-
-// void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
-// {
-//     std::stringstream ss( queryString );
-//     std::string param;
-
-//     while ( std::getline(ss, param, '&') )
-// 	{
-//         if ( param.empty() ) continue;
-
-//         size_t equalPos		=	param.find( '=' );
-//         std::string key		=	param.substr( 0, equalPos );
-//         std::string value	=	equalPos != std::string::npos ? param.substr( equalPos + 1 ) : "";
-
-//         queries[key] = value;
-//     }
-// }
-
 void	HTTPRequest::validateUriAndParseQueries()
 {
-	if ( uri.empty() )
-		throw std::invalid_argument( "empty uri" );
+	validateUri();
 
-	std::string	query;
-	std::string param;
-	size_t		queryStrigStartPos = uri.find_first_of( '?' );
+	size_t queryPos = uri.find('?');
 
-	if ( uri.front() != '/' )
-		throw std::invalid_argument( "bad request: missing / at the start of uri" );
-	if ( std::count( uri.begin(), uri.end(), ' ' ) != 0 )
-		throw std::invalid_argument( "bad request: uri contain space" );
-	if ( uri.length() > 1024 )
-		throw std::invalid_argument( "bad request: uri length exceeted the limit" );
-	
-	if ( uri.find_first_of( '?' ) != std::string::npos )
+    if ( queryPos != std::string::npos )
 	{
-		query	=	uri.substr( queryStrigStartPos + 1 );
-		uri.resize( uri.length() - ( query.length() + 1 ) );
-		if ( !query.empty() )
-		{
-			std::stringstream ss( query );
-			size_t numberOfQueries = std::count( query.begin(), query.end(), '&' ) + 1;
+        std::string queryString = uri.substr( queryPos + 1 );
+        uri = uri.substr( 0, queryPos );
+        splitAndStoreQueries( queryString );
+    }
+}
 
-			for ( int i = 0; i <  numberOfQueries; i++)
-			{
-				std::getline( ss, param, '&' );
-				COUT( "Param: " + param );
-				if ( !param.empty() )
-				{
-					size_t	equalPos = param.find_first_of( '=' );
-					if ( equalPos != std::string::npos )
-					{
-						std::string key		( param.substr( 0, equalPos ) );
-						std::string value	( param.substr( key.length() + 1 , param.length() - ( key.length() + 1 ) ) );
+void HTTPRequest::validateUri()
+{
+    if ( uri.empty() )
+        throw std::invalid_argument("Empty URI");
 
-						queries.insert( std::pair<std::string, std::string>( key, value ) );
-					}
-					else
-						queries.insert( std::pair<std::string, std::string>( param, "" ) );
-				}
-			}
-		}
-	}
-	for ( auto &kv : queries )
-		std::cout << "key: " << kv.first << " second: " << kv.second << std::endl;
-		
+    if ( uri.front() != '/' )
+        throw std::invalid_argument("Bad request: missing / at the start of URI");
+
+    if ( uri.find(' ') != std::string::npos )
+        throw std::invalid_argument("Bad request: URI contains space");
+
+    if ( uri.length() > 1024 )
+        throw std::invalid_argument("Bad request: URI length exceeded the limit");
+}
+
+void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
+{
+    std::string param;
+    std::stringstream ss( queryString );
+
+    while ( std::getline(ss, param, '&') )
+	{
+        if ( param.empty() ) continue;
+
+        size_t equalPos		=	param.find( '=' );
+        std::string key		=	param.substr( 0, equalPos );
+        std::string value	=	equalPos != std::string::npos ? param.substr( equalPos + 1 ) : "";
+
+        queries[key] = value;
+    }
 }
 
 void HTTPRequest::parseHeaders()
@@ -221,7 +140,7 @@ void HTTPRequest::parseHeaders()
 	std::vector<std::string>::const_iterator	it;
 	std::stringstream							headerStream ( clientRequest );
 
-	COUT( "Parsing Headers");
+	// COUT( "Parsing Headers");
 	try
 	{
 		std::getline( headerStream, line );
@@ -235,17 +154,21 @@ void HTTPRequest::parseHeaders()
 		for ( it = header_lines.begin(); it != header_lines.end(); ++it )
 		{
 			first	=	it->substr( 0, it->find_first_of( ':' ) );
-			second	=	it->substr( it->find_first_of( ' ' ) + 1 );
+			second	=	it->substr( it->find_first_of( ':' ) + 2 );
+
 			if ( first == "Content-Length" )
 				contentLength = std::atoi( second.c_str() );
 			if ( first == "Transfer-Encoding" && second == "chunked")
 				chunkedEncoding = TRUE;
+			if ( contentLength > 0 && chunkedEncoding == TRUE )
+				throw std::exception();
+			
 			headers[ first ] = second;
 		}
 	}
 	catch(const std::exception& e)
 	{
-		throw std::invalid_argument( "Parsing Headers failed" );
+		throw std::invalid_argument( "Bad request: misconfiguration in header lines" );
 	}
 }
 
@@ -299,4 +222,21 @@ std::string HTTPRequest::getVersion() const
 bool HTTPRequest::getConnectionStatus() const
 {
 	return ( connStatus );
+}
+
+void HTTPRequest::output()
+{
+	COUT( " ---------------------- Request ---------------------- " );
+	std::cout  << clientRequest << std::endl;
+	COUT( " -------------------- start line --------------------- " );
+	std::cout << "Method: " << method << " ---- " << "uri: " << uri << " ---- " << "version: " << version << std::endl;
+
+	COUT( " ---------------------- Queries ---------------------- " );
+	for ( auto &kv : queries )
+		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+
+	COUT( " ---------------------- Headers ---------------------- " );
+	for ( auto &kv : headers )
+		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+	COUT( " ---------------------- ------- ---------------------- " );
 }

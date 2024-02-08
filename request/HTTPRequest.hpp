@@ -6,39 +6,38 @@ public:
     HTTPRequest( int );
 	~HTTPRequest();
 
-    std::string getMethod() const;
     std::string getURI() const;
+    std::string getMethod() const;
 	std::string getVersion() const;
-	std::string	fileNameGen() const;
     std::string getHeaders( const std::string& ) const;
+
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
 private:
-	bool			chunkedEncoding;
-    std::string 	method;
     std::string 	uri;
+    std::string 	method;
 	std::string 	version;
+	std::string		bodYrest;
 	std::string		clientRequest;
 	int				bodyFile;
-
-
-	bool			connStatus;
+	int				clientSocket;
 	bool 			headerEnd;
-	unsigned int	clientSocket;
-
-	size_t			contentLength;
+	bool			connStatus;
+	bool			chunkedEncoding;
+	bool			ignoreBody;
 	size_t 			npos;
+	size_t			contentLength;
     std::map<std::string, std::string> headers;
 	std::map<std::string, std::string> queries;
 
-    void 			parseMethodAndURI();
     void 			parseHeaders();
-	void			validateUriAndParseQueries();
-	// void			validateUri();
-	// void			splitAndStoreQueries( const std::string& );
-	// void			parseQueryString();
-    void 			parseBody( size_t );
-
-	// added
 	void			receiveHeader();
+	void			validateUri();
+    void 			parseMethodAndURI();
+    void 			parseBody( size_t );
+	void			validateUriAndParseQueries();
+	void			splitAndStoreQueries( const std::string& );
+
+	std::string		randomFileNameGen();
+	void			output();
 };
