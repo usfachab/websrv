@@ -2,13 +2,14 @@
 
 HTTPRequest::HTTPRequest( int clientSock )
 {
+	COUT( "HTTPRequest constructor called" );
 	contentLength		=	FALSE;
-	npos				= 	FAIL;
 	connStatus			=	TRUE;
 	headerEnd			=	FALSE;
 	clientSocket		=	clientSock;
-	std::string	path	=	"./request/folder/" + fileNameGen();
-	bodyFile			= 	open( path.c_str() , O_CREAT | O_RDWR, 0666 );
+	chunkedEncoding     =   FALSE;
+	// std::string	path	=	"./request/folder/" + fileNameGen();
+	// bodyFile			= 	open( path.c_str() , O_CREAT | O_RDWR, 0666 );
 }
 
 HTTPRequest::~HTTPRequest() {}
@@ -26,38 +27,69 @@ std::string HTTPRequest::fileNameGen() const
 
 void	HTTPRequest::startParsingRequest()
 {
-	int rc;
-	char buffer[ BUFFER_SIZE ];
-	std::string startLine;
-	std::string	bodyRest;
+	// int rc;
+	// char buffer[ BUFFER_SIZE ];
+	// std::string	bodyRest;
 
-	COUT( "startParsingRequest" );
-	if ( !headerEnd )
+	// if ( !headerEnd )
+	// {
+	// 	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+	// 	if ( rc > 0 )
+	// 	{
+	// 		buffer[ rc ] = 0;
+	// 		clientRequest.append( buffer, rc );
+	// 		if ( clientRequest.find( CRLF ) != std::string::npos )
+	// 		{
+	// 			headerEnd = TRUE;
+	// 			bodyRest = clientRequest.substr( clientRequest.find( CRLF ) + 4 );
+	// 			if ( !bodyRest.empty() )
+	// 				write( bodyFile,  bodyRest.c_str(), bodyRest.length() );
+	// 			parseMethodAndURI();
+	// 			validateUriAndParseQueries();
+	// 			parseHeaders();
+	// 		}
+	// 	}
+	// }
+	// else if ( rc == -1 )
+	// 	throw std::invalid_argument( "recv failed" );
+	// else
+	// 	throw std::invalid_argument( "client close connection" );
+
+	COUT( "start Parsing Client Request" );
+	if ( headerEnd == FALSE )
+		receiveHeader();
+	if ( headerEnd == TRUE )
 	{
-		rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-		if ( rc > 0 )
-		{
-			buffer[ rc ] = 0;
-			clientRequest.append( buffer, rc );
-			if ( clientRequest.find( CRLF ) != npos )
-			{
-				headerEnd = TRUE;
-				bodyRest = clientRequest.substr( clientRequest.find( CRLF ) + 4 );
-				if ( !bodyRest.empty() )
-					write( bodyFile,  bodyRest.c_str(), bodyRest.length() );
-				parseMethodAndURI();
-				validateUriAndParseQueries();
-				parseHeaders();
-			}
-		}
-		else if ( rc == -1 )
-			throw std::invalid_argument( "recv failed" );
-		else
-			throw std::invalid_argument( "client close connection" );
+		parseMethodAndURI();
+		validateUriAndParseQueries();
+		parseHeaders();
 	}
-	if ( contentLength > 0 )
-		parseBody( contentLength );
-	
+	if ( chunkedEncoding == TRUE )
+		COUT( "Chunked" ); // parseChunkedBody
+	// else if ( contentLength > 0 )
+	// 	parseBody( contentLength );
+}
+
+void	HTTPRequest::receiveHeader()
+{
+	int rc;
+	char	buffer[ BUFFER_SIZE ];
+
+	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+	if ( rc > 0 )
+	{
+		buffer[ rc ] = 0;
+		clientRequest.append( buffer, rc );
+		if ( clientRequest.find( CRLF ) != std::string::npos )
+		{
+			headerEnd = TRUE;
+			// rest of body
+		}
+	}
+	else if ( rc == -1 )
+		throw std::invalid_argument( "recv failed" );
+	else
+		throw std::invalid_argument( "client close connection" );
 }
 
 void	HTTPRequest::parseMethodAndURI()
@@ -81,58 +113,103 @@ void	HTTPRequest::parseMethodAndURI()
 	}
 }
 
+// void HTTPRequest::validateUriAndParseQueries() {
+//     validateUri();
+//     parseQueryString();
+// }
+
+// void HTTPRequest::validateUri()
+// {
+//     if ( uri.empty() )
+//         throw std::invalid_argument("Empty URI");
+
+//     if ( uri.front() != '/' )
+//         throw std::invalid_argument("Bad request: missing / at the start of URI");
+
+//     if ( uri.find(' ') != std::string::npos )
+//         throw std::invalid_argument("Bad request: URI contains space");
+
+//     if ( uri.length() > 1024 )
+//         throw std::invalid_argument("Bad request: URI length exceeded the limit");
+// }
+
+// void HTTPRequest::parseQueryString()
+// {
+//     size_t queryPos = uri.find('?');
+
+//     if ( queryPos != std::string::npos )
+// 	{
+//         std::string queryString = uri.substr( queryPos + 1 );
+//         uri = uri.substr( 0, queryPos );
+//         splitAndStoreQueries( queryString );
+//     }
+// }
+
+// void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
+// {
+//     std::stringstream ss( queryString );
+//     std::string param;
+
+//     while ( std::getline(ss, param, '&') )
+// 	{
+//         if ( param.empty() ) continue;
+
+//         size_t equalPos		=	param.find( '=' );
+//         std::string key		=	param.substr( 0, equalPos );
+//         std::string value	=	equalPos != std::string::npos ? param.substr( equalPos + 1 ) : "";
+
+//         queries[key] = value;
+//     }
+// }
+
 void	HTTPRequest::validateUriAndParseQueries()
 {
-	if ( !uri.empty() )
+	if ( uri.empty() )
+		throw std::invalid_argument( "empty uri" );
+
+	std::string	query;
+	std::string param;
+	size_t		queryStrigStartPos = uri.find_first_of( '?' );
+
+	if ( uri.front() != '/' )
+		throw std::invalid_argument( "bad request: missing / at the start of uri" );
+	if ( std::count( uri.begin(), uri.end(), ' ' ) != 0 )
+		throw std::invalid_argument( "bad request: uri contain space" );
+	if ( uri.length() > 1024 )
+		throw std::invalid_argument( "bad request: uri length exceeted the limit" );
+	
+	if ( uri.find_first_of( '?' ) != std::string::npos )
 	{
-		
-		std::string	query;
-		std::string param;
-		// std::string	key;
-		// std::string value;
-		size_t		queryStrigStartPos = uri.find_first_of( '?' );
-
-		if ( uri.front() != '/' )
-			throw std::invalid_argument( "bad request: missing / at the start of uri" );
-		if ( std::count( uri.begin(), uri.end(), ' ' ) != 0 )
-			throw std::invalid_argument( "bad request: uri contain space" );
-		if ( uri.length() > 1024 )
-			throw std::invalid_argument( "bad request: uri length exceeted the limit" );
-		
-		if ( uri.find_first_of( '?' ) != npos )
+		query	=	uri.substr( queryStrigStartPos + 1 );
+		uri.resize( uri.length() - ( query.length() + 1 ) );
+		if ( !query.empty() )
 		{
-			query	=	uri.substr( queryStrigStartPos + 1 );
-			uri.resize( uri.length() - ( query.length() + 1 ) );
-			if ( !query.empty() )
+			std::stringstream ss( query );
+			size_t numberOfQueries = std::count( query.begin(), query.end(), '&' ) + 1;
+
+			for ( int i = 0; i <  numberOfQueries; i++)
 			{
-				std::stringstream ss( query );
-				size_t numberOfQueries = std::count( query.begin(), query.end(), '&' ) + 1;
-
-				for ( int i = 0; i <  numberOfQueries; i++)
+				std::getline( ss, param, '&' );
+				COUT( "Param: " + param );
+				if ( !param.empty() )
 				{
-					std::getline( ss, param, '&' );
-					COUT( "Param: " + param );
-					if ( !param.empty() )
+					size_t	equalPos = param.find_first_of( '=' );
+					if ( equalPos != std::string::npos )
 					{
-						size_t	equalPos = param.find_first_of( '=' );
-						if ( equalPos != npos )
-						{
-							std::string key		( param.substr( 0, equalPos ) );
-							std::string value	( param.substr( key.length() + 1 , param.length() - ( key.length() + 1 ) ) );
+						std::string key		( param.substr( 0, equalPos ) );
+						std::string value	( param.substr( key.length() + 1 , param.length() - ( key.length() + 1 ) ) );
 
-							queries.insert( std::pair<std::string, std::string>( key, value ) );
-						}
-						else
-							queries.insert( std::pair<std::string, std::string>( param, "" ) );
+						queries.insert( std::pair<std::string, std::string>( key, value ) );
 					}
+					else
+						queries.insert( std::pair<std::string, std::string>( param, "" ) );
 				}
 			}
 		}
-		for ( auto &kv : queries )
-			std::cout << "key: " << kv.first << " second: " << kv.second << std::endl;
 	}
-	else
-		throw std::invalid_argument( "empty uri" );
+	for ( auto &kv : queries )
+		std::cout << "key: " << kv.first << " second: " << kv.second << std::endl;
+		
 }
 
 void HTTPRequest::parseHeaders()
@@ -161,6 +238,8 @@ void HTTPRequest::parseHeaders()
 			second	=	it->substr( it->find_first_of( ' ' ) + 1 );
 			if ( first == "Content-Length" )
 				contentLength = std::atoi( second.c_str() );
+			if ( first == "Transfer-Encoding" && second == "chunked")
+				chunkedEncoding = TRUE;
 			headers[ first ] = second;
 		}
 	}

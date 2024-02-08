@@ -19,6 +19,8 @@
 #include <functional>
 #include <stdio.h>
 #include <exception>
+#include <algorithm>
+#include <ctime>
 
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
 #define CRLF				"\r\n\r\n"

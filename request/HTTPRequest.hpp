@@ -14,6 +14,7 @@ public:
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
 private:
+	bool			chunkedEncoding;
     std::string 	method;
     std::string 	uri;
 	std::string 	version;
@@ -33,5 +34,11 @@ private:
     void 			parseMethodAndURI();
     void 			parseHeaders();
 	void			validateUriAndParseQueries();
+	// void			validateUri();
+	// void			splitAndStoreQueries( const std::string& );
+	// void			parseQueryString();
     void 			parseBody( size_t );
+
+	// added
+	void			receiveHeader();
 };
