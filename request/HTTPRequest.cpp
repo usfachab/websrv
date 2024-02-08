@@ -85,11 +85,8 @@ void	HTTPRequest::validateUriAndParseQueries()
 {
 	if ( !uri.empty() )
 	{
-		
 		std::string	query;
 		std::string param;
-		// std::string	key;
-		// std::string value;
 		size_t		queryStrigStartPos = uri.find_first_of( '?' );
 
 		if ( uri.front() != '/' )
