@@ -16,6 +16,7 @@ private:
 	HTTPRequestStruct crs;
 
     void 			regularBody();
+	void			chunkedBody();
 	void			validateUri();
     void 			parseHeaders();
 	void			receiveHeader();

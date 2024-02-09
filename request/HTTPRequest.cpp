@@ -6,8 +6,8 @@ HTTPRequest::~HTTPRequest() {}
 
 void	HTTPRequest::startParsingRequest()
 {
-	// COUT( "startParsingRequest" );
 	crs.hundredContinue = FALSE;
+
 	if ( crs.headerEnd == FALSE )
 		receiveHeader();
 	if ( crs.headerEnd == TRUE && crs.once == TRUE )
@@ -25,7 +25,7 @@ void	HTTPRequest::receiveHeader()
 {
 	int		rc;
 	char	buffer[ BUFFER_SIZE ];
-	// COUT( "receiveHeader" );
+
 	rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
 	if ( rc > 0 )
 	{
@@ -35,6 +35,7 @@ void	HTTPRequest::receiveHeader()
 		{
 			crs.headerEnd = TRUE;
 			crs.bodYrest = crs.clientRequest.substr( crs.clientRequest.find( CRLF ) + 4 );
+			COUT( "Here: \n\n" + crs.bodYrest + "\n\n\n\n" )
 		}
 	}
 	else if ( rc == -1 )
@@ -46,7 +47,7 @@ void	HTTPRequest::receiveHeader()
 void	HTTPRequest::parseMethodAndURI()
 {
 	std::string startLine;
-	// COUT( "parseMethodAndURI" );
+
 	try
 	{
 		startLine = crs.clientRequest.substr( 0, crs.clientRequest.find( "\r\n" ) );
@@ -74,7 +75,7 @@ void	HTTPRequest::parseMethodAndURI()
 void	HTTPRequest::validateUriAndParseQueries()
 {
 	validateUri();
-	// COUT( "validateUriAndParseQueries" );
+
 	size_t queryPos = crs.uri.find('?');
 
     if ( queryPos != std::string::npos )
@@ -87,7 +88,6 @@ void	HTTPRequest::validateUriAndParseQueries()
 
 void HTTPRequest::validateUri()
 {
-	// COUT( "validateUri" );
     if ( crs.uri.empty() )
         throw std::invalid_argument("Empty URI");
 
@@ -106,7 +106,6 @@ void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
     std::string param;
     std::stringstream ss( queryString );
 
-	// COUT( "split And Stor eQueries" );
     while ( std::getline(ss, param, '&') )
 	{
         if ( param.empty() ) continue;
@@ -126,7 +125,6 @@ void HTTPRequest::parseHeaders()
 	std::vector<std::string>::const_iterator	it;
 	std::stringstream							headerStream ( crs.clientRequest );
 
-	// COUT( "start parsing headers" );
 	try
 	{
 		std::getline( headerStream, line );
@@ -154,6 +152,7 @@ void HTTPRequest::parseHeaders()
 		}
 
 		crs.once = FALSE;
+		crs.clientRequest.clear();
 	}
 	catch(const std::exception& e)
 	{
@@ -163,10 +162,18 @@ void HTTPRequest::parseHeaders()
 
 void	HTTPRequest::startParsingBodies()
 {
-	if ( crs.chunkedEncoding == TRUE && crs.ignoreBody == FALSE )
-		COUT( "Chunked" ); // *parseChunkedBody
-	if ( crs.contentLength > 0 && crs.ignoreBody == FALSE )
-		regularBody();
+	if ( crs.ignoreBody == FALSE )
+	{
+		if ( crs.chunkedEncoding == TRUE )
+			chunkedBody();
+		if ( crs.contentLength > 0 )
+			regularBody();
+	}
+}
+
+void	HTTPRequest::chunkedBody()
+{
+	COUT( "Parse chunked body" );
 }
 
 void HTTPRequest::regularBody()
