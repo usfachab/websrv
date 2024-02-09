@@ -1,0 +1,28 @@
+// if ( uri.find_first_of( '?' ) != std::string::npos )
+// {
+// 	query	=	uri.substr( queryPos + 1 );
+// 	uri.resize( uri.length() - ( query.length() + 1 ) );
+// 	if ( !query.empty() )
+// 	{
+// 		std::stringstream ss( query );
+// 		size_t numberOfQueries = std::count( query.begin(), query.end(), '&' ) + 1;
+
+// 		for ( int i = 0; i <  numberOfQueries; i++)
+// 		{
+// 			std::getline( ss, param, '&' );
+// 			if ( !param.empty() )
+// 			{
+// 				size_t	equalPos = param.find_first_of( '=' );
+// 				if ( equalPos != std::string::npos )
+// 				{
+// 					std::string key		( param.substr( 0, equalPos ) );
+// 					std::string value	( param.substr( key.length() + 1 , param.length() - ( key.length() + 1 ) ) );
+
+// 					queries.insert( std::pair<std::string, std::string>( key, value ) );
+// 				}
+// 				else
+// 					queries.insert( std::pair<std::string, std::string>( param, "" ) );
+// 			}
+// 		}
+// 	}
+// }
