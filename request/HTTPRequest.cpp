@@ -38,7 +38,7 @@ void	HTTPRequest::startParsingRequest()
 	if ( chunkedEncoding == TRUE && ignoreBody == FALSE )
 		COUT( "Chunked" ); // *parseChunkedBody
 	if ( contentLength > 0 && ignoreBody == FALSE )
-		COUT( "normal body" ); // !cuation with bodYrest
+		parseBody(); // !cuation with bodYrest
 	output();
 }
 
@@ -53,7 +53,11 @@ void	HTTPRequest::receiveHeader()
 		buffer[ rc ] = 0;
 		clientRequest.append( buffer, rc );
 		if ( clientRequest.find( CRLF ) != std::string::npos )
+		{
 			headerEnd = TRUE;
+			bodYrest = clientRequest.substr( clientRequest.find( CRLF ) + 4 );
+
+		}
 	}
 	else if ( rc == -1 )
 		throw std::invalid_argument( "recv failed" );
@@ -172,23 +176,31 @@ void HTTPRequest::parseHeaders()
 	}
 }
 
-void HTTPRequest::parseBody( size_t content_length )
+void HTTPRequest::parseBody( )
 {
 	int rc;
 	char buffer[ BUFFER_SIZE ];
+	std::string	path = "./request/folder/" + randomFileNameGen();
 
 	COUT( "Parsing body" );
+	bodyOutFile = open( path.c_str() , O_CREAT | O_RDWR, 0666 );
+	if ( !bodYrest.empty() )
+	{
+		write( bodyOutFile, bodYrest.c_str(),  bodYrest.length() );
+		bodYrest.clear();
+	}
 	rc = recv( clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-	COUT( rc );
+	OK;
 	if ( rc > 0 )
 	{
 		buffer[ rc ] = 0;
-		write( bodyFile, buffer,  rc );
+		write( bodyOutFile, buffer,  rc );
 	}
 	else if ( rc == -1 )
 		throw std::invalid_argument( "recv failed" );
 	else
 		throw std::invalid_argument( "client close connection" );
+	OK;
 }
 /*----------------------------------Get Methods ------------------------------------*/
 

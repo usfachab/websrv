@@ -14,27 +14,24 @@ public:
 	bool		getConnectionStatus() const;
 	void		startParsingRequest();
 private:
-    std::string 	uri;
-    std::string 	method;
-	std::string 	version;
-	std::string		bodYrest;
-	std::string		clientRequest;
-	int				bodyFile;
+	int				bodyOutFile;
 	int				clientSocket;
 	bool 			headerEnd;
 	bool			connStatus;
 	bool			chunkedEncoding;
 	bool			ignoreBody;
-	size_t 			npos;
 	size_t			contentLength;
-    std::map<std::string, std::string> headers;
-	std::map<std::string, std::string> queries;
+	size_t 			npos;
+    std::string 	uri, method, version;
+	std::string		bodYrest;
+	std::string		clientRequest;
+    std::map<std::string, std::string> headers, queries;
 
     void 			parseHeaders();
 	void			receiveHeader();
 	void			validateUri();
     void 			parseMethodAndURI();
-    void 			parseBody( size_t );
+    void 			parseBody();
 	void			validateUriAndParseQueries();
 	void			splitAndStoreQueries( const std::string& );
 
