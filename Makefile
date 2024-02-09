@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : refactoring"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : Start chunked request handling"
 	git push
 
 .PHONY: clean fclean re

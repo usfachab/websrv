@@ -6,35 +6,24 @@ public:
     HTTPRequest( int );
 	~HTTPRequest();
 
-    std::string getURI() const;
-    std::string getMethod() const;
-	std::string getVersion() const;
-    std::string getHeaders( const std::string& ) const;
-
-	bool		getConnectionStatus() const;
-	void		startParsingRequest();
+	bool			getConnectionStatus() const;
+	void			startParsingRequest();
+    std::string 	getURI() const;
+    std::string 	getMethod() const;
+	std::string 	getVersion() const;
+    std::string 	getHeaders( const std::string& ) const;
 private:
-	int				bodyOutFile;
-	int				clientSocket;
-	bool 			headerEnd;
-	bool			connStatus;
-	bool			chunkedEncoding;
-	bool			ignoreBody;
-	size_t			contentLength;
-	size_t 			npos;
-    std::string 	uri, method, version;
-	std::string		bodYrest;
-	std::string		clientRequest;
-    std::map<std::string, std::string> headers, queries;
+	HTTPRequestStruct crs;
 
+    void 			regularBody();
+	void			chunkedBody();
+	void			validateUri();
     void 			parseHeaders();
 	void			receiveHeader();
-	void			validateUri();
     void 			parseMethodAndURI();
-    void 			parseBody();
 	void			validateUriAndParseQueries();
 	void			splitAndStoreQueries( const std::string& );
-
+	void			startParsingBodies();
 	std::string		randomFileNameGen();
 	void			output();
 };

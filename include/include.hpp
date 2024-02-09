@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <ctime>
 
+#define	ONCE				TRUE
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
 #define CRLF				"\r\n\r\n"
 #define GOOD				FALSE
@@ -49,5 +50,34 @@
 #define	RECV_ERROR( VAL )	if (rc < 0) { if (errno != EWOULDBLOCK) { perror("  recv() failed"); close_conn = TRUE; } break; }
 #define RES_HEADER	"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n"
 #define RES_BODY	"<html>\r\n<body>\r\n<h1>Hello, World!</h1>\r\n</body>\r\n</html>\r\n"
+
+struct HTTPRequestStruct
+{
+	int				bodyFile;
+	int				clientSocket;
+	bool			once;
+	bool 			headerEnd;
+	bool			connStatus;
+	bool			ignoreBody;
+	bool			chunkedEncoding;
+	bool			hundredContinue;
+	size_t 			npos;
+	size_t			contentLength;
+	std::string		bodYrest;
+	std::string		clientRequest;
+    std::string 	uri, method, version;
+    std::map<std::string, std::string> headers, queries;
+
+	HTTPRequestStruct( int clientSock )
+	{
+		contentLength		=	0;
+		connStatus			=	TRUE;
+		headerEnd			=	FALSE;
+		chunkedEncoding     =   FALSE;
+		ignoreBody			=	FALSE;
+		once				=	TRUE;
+		clientSocket		=	clientSock;
+	}
+};
 
 #endif
