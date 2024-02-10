@@ -178,24 +178,25 @@ void	HTTPRequest::chunkedBody()
 {
 	COUT( "Parse chunked body" );
 
-	int buffer_size;
+	char buffer[ BUFFER_SIZE ];
 
-	if ( crs.bodYrest.empty() )
-		buffer_size = BUFFER_SIZE;
-	else
-		handleBodYrest();
-	if ( crs.restOfBodYrest == 0 )
-		return ; // responde to client
-	if ( crs.bodYrest.empty() )
+	if ( !crs.bodYrest.empty() )
 	{
-		buffer_size = crs.restOfBodYrest;
-	char buffer[ crs.restOfBodYrest + 1 ];
-
-		int rc = recv( crs.clientSocket, buffer, crs.restOfBodYrest, NO_FLAG );
-		buffer[ rc ] = 0;
-		COUT(buffer);
+		handleBodYrest();
+		if ( crs.restOfBodYrest > 0 ) // get the rest of body rest
+		{
+			int rc = recv( crs.clientSocket, buffer, crs.restOfBodYrest - 1, NO_FLAG );
+			buffer[ rc ] = 0;
+			COUT( "Buffer: " );
+			COUT( buffer );
+			sleep(4);
+		}
+		else
+			return ;		
 	}
-		// exit(1);
+	else
+		COUT( "No Body but a new chunks need to be receive" );
+	
 }
 
 size_t eofChunk( size_t startPos, std::string& chunk )
@@ -232,6 +233,8 @@ void	HTTPRequest::handleBodYrest()
 	std::string	chunkContent;
 	size_t		crlfPos;
 
+	COUT( "handle BodY rest" );
+
 	hexliteral	=	crs.bodYrest.substr( 0, crs.bodYrest.find( '\r' ) );
 	chunkSize	=	std::strtol( hexliteral.c_str(), NULL, 16 );
 
@@ -243,14 +246,11 @@ void	HTTPRequest::handleBodYrest()
 		chunkContent = crs.bodYrest.substr( 0, crlfPos );
 	else
 		chunkContent = crs.bodYrest.substr( 0 , crs.bodYrest.length() );
+
 	if ( chunkSize > chunkContent.length() )
 		crs.restOfBodYrest = chunkSize - chunkContent.length();
 		
-	COUT( crs.restOfBodYrest )
-	// COUT( hexliteral );
-	// COUT( chunkSize );
-	// COUT(crs.bodYrest);
-	crs.bodYrest.clear();	
+	crs.bodYrest.clear();
 }
 
 

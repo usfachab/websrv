@@ -53,9 +53,8 @@
 
 struct HTTPRequestStruct
 {
+	bool			chunkRequestDone;
 	size_t			restOfBodYrest;
-	size_t			currentChunkSize;
-	size_t			nextChunkSize;
 	int				bodyFile;
 	int				clientSocket;
 	bool			once;
@@ -76,6 +75,7 @@ struct HTTPRequestStruct
 		restOfBodYrest		=	0;
 		contentLength		=	0;
 		connStatus			=	TRUE;
+		chunkRequestDone	= 	FALSE;
 		headerEnd			=	FALSE;
 		chunkedEncoding     =   FALSE;
 		ignoreBody			=	FALSE;

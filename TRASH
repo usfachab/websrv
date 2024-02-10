@@ -29,63 +29,63 @@
 
 
 
-void	HTTPRequest::handleBodYrest()
-{
-	int			index = 0;
-	std::string line;
-	std::string chunkData;
+// void	HTTPRequest::handleBodYrest()
+// {
+// 	int			index = 0;
+// 	std::string line;
+// 	std::string chunkData;
 
-	size_t	chunkSize;
-	size_t	start;
+// 	size_t	chunkSize;
+// 	size_t	start;
 
-	COUT( "Parse chunked body rest" );
-	while ( index < 2 )
-	{
-		crs.eofChunkPos  = eofChunk( crs.eofChunkPos, crs.bodYrest );
-		COUT( crs.eofChunkPos );
-		if ( index == 0 )
-		{
-			std::string chunklen = crs.bodYrest.substr( 0,  crs.eofChunkPos );
-			chunkSize = std::strtol( chunklen.c_str(), NULL, 16 );
-			if ( chunkSize == LONG_MAX || chunkSize == LONG_MIN )
-				throw std::invalid_argument( "bad request: chunk size corrupted" );
-			crs.eofChunkPos += 2;
-			start = crs.eofChunkPos;
-		}
-		else
-		{
-			if ( crs.eofChunkPos != std::string::npos )
-			{
-				std::string toWrite( crs.bodYrest.substr( start, chunkSize  ) );
-				COUT( toWrite );
-			}
-		}
-		index++;
-	}
-}
+// 	COUT( "Parse chunked body rest" );
+// 	while ( index < 2 )
+// 	{
+// 		crs.eofChunkPos  = eofChunk( crs.eofChunkPos, crs.bodYrest );
+// 		COUT( crs.eofChunkPos );
+// 		if ( index == 0 )
+// 		{
+// 			std::string chunklen = crs.bodYrest.substr( 0,  crs.eofChunkPos );
+// 			chunkSize = std::strtol( chunklen.c_str(), NULL, 16 );
+// 			if ( chunkSize == LONG_MAX || chunkSize == LONG_MIN )
+// 				throw std::invalid_argument( "bad request: chunk size corrupted" );
+// 			crs.eofChunkPos += 2;
+// 			start = crs.eofChunkPos;
+// 		}
+// 		else
+// 		{
+// 			if ( crs.eofChunkPos != std::string::npos )
+// 			{
+// 				std::string toWrite( crs.bodYrest.substr( start, chunkSize  ) );
+// 				COUT( toWrite );
+// 			}
+// 		}
+// 		index++;
+// 	}
+// }
 
-size_t HTTPRequest::eofChunk( size_t startPos, std::string& chunk )
-{
-	bool cr = false;
-	bool fl = false;
+// size_t HTTPRequest::eofChunk( size_t startPos, std::string& chunk )
+// {
+// 	bool cr = false;
+// 	bool fl = false;
 
-	size_t crPos = 0;
-	size_t flPos = 0;
+// 	size_t crPos = 0;
+// 	size_t flPos = 0;
 
-	for ( int i = startPos; i < chunk.length(); i++ )
-	{
-		if ( chunk.at( i ) == '\r' )
-		{
-			cr = !cr;
-			crPos = i;
-		}
-		else if ( chunk.at( i ) == '\n' )
-		{
-			fl = !fl;
-			flPos = i;
-		}
-		if ( cr == true && fl == true && flPos == crPos + 1 )
-			return ( crPos );
-	}
-		return ( std::string::npos );
-}
+// 	for ( int i = startPos; i < chunk.length(); i++ )
+// 	{
+// 		if ( chunk.at( i ) == '\r' )
+// 		{
+// 			cr = !cr;
+// 			crPos = i;
+// 		}
+// 		else if ( chunk.at( i ) == '\n' )
+// 		{
+// 			fl = !fl;
+// 			flPos = i;
+// 		}
+// 		if ( cr == true && fl == true && flPos == crPos + 1 )
+// 			return ( crPos );
+// 	}
+// 		return ( std::string::npos );
+// }
