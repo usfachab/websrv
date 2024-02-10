@@ -53,6 +53,7 @@
 
 struct HTTPRequestStruct
 {
+	size_t			restOfBodYrest;
 	size_t			currentChunkSize;
 	size_t			nextChunkSize;
 	int				bodyFile;
@@ -72,6 +73,7 @@ struct HTTPRequestStruct
 
 	HTTPRequestStruct( int clientSock )
 	{
+		restOfBodYrest		=	0;
 		contentLength		=	0;
 		connStatus			=	TRUE;
 		headerEnd			=	FALSE;

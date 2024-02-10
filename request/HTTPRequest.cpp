@@ -176,47 +176,27 @@ void	HTTPRequest::startParsingBodies()
 
 void	HTTPRequest::chunkedBody()
 {
-	char buffer[ BUFFER_SIZE ];
-
 	COUT( "Parse chunked body" );
-	if ( !crs.bodYrest.empty() )
-		handleBodYrest();
+
+	int buffer_size;
+
+	if ( crs.bodYrest.empty() )
+		buffer_size = BUFFER_SIZE;
 	else
+		handleBodYrest();
+	if ( crs.restOfBodYrest == 0 )
+		return ; // responde to client
+	if ( crs.bodYrest.empty() )
 	{
-		int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+		buffer_size = crs.restOfBodYrest;
+	char buffer[ crs.restOfBodYrest + 1 ];
+
+		int rc = recv( crs.clientSocket, buffer, crs.restOfBodYrest, NO_FLAG );
 		buffer[ rc ] = 0;
-		exit(1);
+		COUT(buffer);
 	}
+		// exit(1);
 }
-
-// void	HTTPRequest::handleBodYrest()
-// {
-// 	COUT(crs.bodYrest);
-// 	std::string line;
-// 	std::stringstream ss( crs.bodYrest );
-
-// 	if ( !std::getline( ss, line, '\r' ) )
-// 		return ;
-	
-// 	crs.currentChunkSize = std::strtol( line.c_str(), NULL, 16 );
-// 	if ( crs.currentChunkSize == LONG_MAX || crs.currentChunkSize == LONG_MIN )
-// 		throw std::invalid_argument( "bad request: chunk size corrupted" );
-// 	COUT( crs.currentChunkSize );
-// 	if ( crs.currentChunkSize != 0 )
-// 	{
-// 		std::string toWrite( crs.bodYrest.substr( line.length() + 2 ,  crs.currentChunkSize ) ); // crs.currentChunkSize would give a segv;
-// 		COUT( toWrite.length() );
-// 		write( crs.bodyFile, toWrite.c_str(), crs.currentChunkSize );
-// 		ss.ignore();
-// 	}
-
-// 	std::string	getNextChunkSizeHex = crs.bodYrest.substr( crs.currentChunkSize + ( line.length() + 2 ) );
-// 	if ( !getNextChunkSizeHex.empty() )
-// 	{
-// 		std::string tmp = getNextChunkSizeHex.substr( 2, getNextChunkSizeHex.length() - 2 );
-// 		crs.nextChunkSize = std::strtol( tmp.c_str(), NULL, 16 );
-// 	}
-// }
 
 size_t eofChunk( size_t startPos, std::string& chunk )
 {
@@ -263,10 +243,10 @@ void	HTTPRequest::handleBodYrest()
 		chunkContent = crs.bodYrest.substr( 0, crlfPos );
 	else
 		chunkContent = crs.bodYrest.substr( 0 , crs.bodYrest.length() );
-
-	if ( chunkSize > crs.bodYrest.length() )
+	if ( chunkSize > chunkContent.length() )
+		crs.restOfBodYrest = chunkSize - chunkContent.length();
 		
-	COUT( chunkContent );
+	COUT( crs.restOfBodYrest )
 	// COUT( hexliteral );
 	// COUT( chunkSize );
 	// COUT(crs.bodYrest);
