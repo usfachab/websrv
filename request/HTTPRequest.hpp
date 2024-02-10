@@ -23,7 +23,6 @@ private:
     void 			parseMethodAndURI();
 	void			validateUriAndParseQueries();
 	void			splitAndStoreQueries( const std::string& );
-	void			startParsingBodies();
 	std::string		randomFileNameGen();
 	void			output();
 

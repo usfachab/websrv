@@ -89,3 +89,36 @@
 // 	}
 // 		return ( std::string::npos );
 // }
+
+
+void	HTTPRequest::handleBodYrest()
+{
+	long		chunkSize;
+	std::string	hexliteral;
+	std::string	toWrite;
+	std::string	chunkContent;
+	size_t		crlfPos;
+
+	COUT( "handle BodY rest" );
+
+	hexliteral	=	crs.bodYrest.substr( 0, crs.bodYrest.find( '\r' ) );
+	chunkSize	=	std::strtol( hexliteral.c_str(), NULL, 16 );
+
+	crs.bodYrest = crs.bodYrest.substr( hexliteral.length() + 2 );
+
+	crlfPos = eofChunk( 0, crs.bodYrest );
+
+	if ( crlfPos != std::string::npos )
+		chunkContent = crs.bodYrest.substr( 0, crlfPos );
+	else
+		chunkContent = crs.bodYrest.substr( 0 , crs.bodYrest.length() );
+
+	if ( chunkSize > chunkContent.length() ) // ba9i mayt9ra
+		crs.restOfBodYrest = chunkSize - chunkContent.length();
+	
+	if ( chunkSize < chunkContent.length() ) // imkn to9a3 ila kano chunks sghar
+
+	if ( chunkSize == chunkContent.length() ) // mab9a mayt9ra
+		
+	crs.bodYrest.clear();
+}
