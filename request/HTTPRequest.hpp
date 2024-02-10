@@ -26,4 +26,6 @@ private:
 	void			startParsingBodies();
 	std::string		randomFileNameGen();
 	void			output();
+
+	void			handleBodYrest();
 };

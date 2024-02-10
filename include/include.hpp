@@ -53,6 +53,8 @@
 
 struct HTTPRequestStruct
 {
+	size_t			currentChunkSize;
+	size_t			nextChunkSize;
 	int				bodyFile;
 	int				clientSocket;
 	bool			once;

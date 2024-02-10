@@ -38,7 +38,6 @@ void	HTTPRequest::receiveHeader()
 		{
 			crs.headerEnd = TRUE;
 			crs.bodYrest = crs.clientRequest.substr( crs.clientRequest.find( CRLF ) + 4 );
-			COUT( "Here: \n\n" + crs.bodYrest + "\n\n\n\n" )
 		}
 	}
 	else if ( rc == -1 )
@@ -177,26 +176,104 @@ void	HTTPRequest::startParsingBodies()
 
 void	HTTPRequest::chunkedBody()
 {
+	char buffer[ BUFFER_SIZE ];
+
 	COUT( "Parse chunked body" );
-	// int		i = 0;
-	long		chunkSize;
-	int			dataSize;
-	std::string	chunkData;
-	std::string	hexNbr;
-	size_t		start;
-	size_t		end;
-
 	if ( !crs.bodYrest.empty() )
+		handleBodYrest();
+	else
 	{
-		hexNbr = crs.bodYrest.substr( 0, crs.bodYrest.find( "\r\n" ) );
-		chunkSize = std::strtol( hexNbr.c_str(), NULL, 16 );
-		for ( int i = 0; i < crs.bodYrest.length(); i++ )
-		{
-			if (  )
-		}
+		int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+		buffer[ rc ] = 0;
+		exit(1);
 	}
-
 }
+
+// void	HTTPRequest::handleBodYrest()
+// {
+// 	COUT(crs.bodYrest);
+// 	std::string line;
+// 	std::stringstream ss( crs.bodYrest );
+
+// 	if ( !std::getline( ss, line, '\r' ) )
+// 		return ;
+	
+// 	crs.currentChunkSize = std::strtol( line.c_str(), NULL, 16 );
+// 	if ( crs.currentChunkSize == LONG_MAX || crs.currentChunkSize == LONG_MIN )
+// 		throw std::invalid_argument( "bad request: chunk size corrupted" );
+// 	COUT( crs.currentChunkSize );
+// 	if ( crs.currentChunkSize != 0 )
+// 	{
+// 		std::string toWrite( crs.bodYrest.substr( line.length() + 2 ,  crs.currentChunkSize ) ); // crs.currentChunkSize would give a segv;
+// 		COUT( toWrite.length() );
+// 		write( crs.bodyFile, toWrite.c_str(), crs.currentChunkSize );
+// 		ss.ignore();
+// 	}
+
+// 	std::string	getNextChunkSizeHex = crs.bodYrest.substr( crs.currentChunkSize + ( line.length() + 2 ) );
+// 	if ( !getNextChunkSizeHex.empty() )
+// 	{
+// 		std::string tmp = getNextChunkSizeHex.substr( 2, getNextChunkSizeHex.length() - 2 );
+// 		crs.nextChunkSize = std::strtol( tmp.c_str(), NULL, 16 );
+// 	}
+// }
+
+size_t eofChunk( size_t startPos, std::string& chunk )
+{
+	bool cr = false;
+	bool fl = false;
+
+	size_t crPos = 0;
+	size_t flPos = 0;
+
+	for ( int i = startPos; i < chunk.length(); i++ )
+	{
+		if ( chunk.at( i ) == '\r' )
+		{
+			cr = !cr;
+			crPos = i;
+		}
+		else if ( chunk.at( i ) == '\n' )
+		{
+			fl = !fl;
+			flPos = i;
+		}
+		if ( cr == true && fl == true && flPos == crPos + 1 )
+			return ( crPos );
+	}
+		return ( std::string::npos );
+}
+
+void	HTTPRequest::handleBodYrest()
+{
+	long		chunkSize;
+	std::string	hexliteral;
+	std::string	toWrite;
+	std::string	chunkContent;
+	size_t		crlfPos;
+
+	hexliteral	=	crs.bodYrest.substr( 0, crs.bodYrest.find( '\r' ) );
+	chunkSize	=	std::strtol( hexliteral.c_str(), NULL, 16 );
+
+	crs.bodYrest = crs.bodYrest.substr( hexliteral.length() + 2 );
+
+	crlfPos = eofChunk( 0, crs.bodYrest );
+
+	if ( crlfPos != std::string::npos )
+		chunkContent = crs.bodYrest.substr( 0, crlfPos );
+	else
+		chunkContent = crs.bodYrest.substr( 0 , crs.bodYrest.length() );
+
+	if ( chunkSize > crs.bodYrest.length() )
+		
+	COUT( chunkContent );
+	// COUT( hexliteral );
+	// COUT( chunkSize );
+	// COUT(crs.bodYrest);
+	crs.bodYrest.clear();	
+}
+
+
 
 void HTTPRequest::regularBody()
 {
