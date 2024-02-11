@@ -19,13 +19,21 @@ void	HTTPRequest::startParsingRequest()
 	}
 	if ( crs.hundredContinue == FALSE )
 	{
-		COUT( "start Parsing Bodies" );
-		if ( crs.ignoreBody )
-			return ;
-		if ( crs.chunkedEncoding )
-			chunkedBody();
-		if ( crs.contentLength > 0 )
-			regularBody();
+		// COUT( "start Parsing Bodies" );
+		try
+		{
+			if ( crs.ignoreBody )
+				return ;
+			if ( crs.chunkedEncoding )
+				chunkedBody();
+			if ( crs.contentLength > 0 )
+				regularBody();
+		}
+		catch(const std::exception& e)
+		{
+			throw std::invalid_argument( e.what() );
+		}
+		
 	}
 }
 
@@ -169,29 +177,59 @@ void HTTPRequest::parseHeaders()
 
 void	HTTPRequest::chunkedBody()
 {
-	COUT( "Parse chunked body" );
+	// COUT( "Parse chunked body" );
 
-	char buffer[ BUFFER_SIZE ];
+	// char buffer[ BUFFER_SIZE ];
 
 	if ( !crs.bodYrest.empty() )
 	{
 		handleBodYrest();
-		// if ( crs.restOfBodYrest > 0 ) // get the rest of body rest
-		// {
-		// 	int rc = recv( crs.clientSocket, buffer, crs.restOfBodYrest - 1, NO_FLAG );
-		// 	buffer[ rc ] = 0;
-		// 	COUT( "Buffer: " );
-		// 	COUT( buffer );
-		// 	sleep(4);
-		// }
-		// else
-		// 	return ;
+		if ( crs.restofBodyEnds == 0 ) // ready to start responding
+		{
+			send( crs.clientSocket, "FUCK YOU", 9, NO_FLAG );
+			close( crs.clientSocket );
+		}
 	}
 	else
 	{
-		COUT( "No Body but a new chunks need to be receive" );
-		close( crs.clientSocket );
+		if ( crs.restofBodyEnds > 0 ) // read what's left from bodYrest
+		{
+			// COUT( "start receiving what the first read not catch" );
+			if ( crs.restofBodyEnds >= 1048576 ) // amount of data that can be received is 1048576 bytes
+				crs.restofBodyEnds = crs.restofBodyEnds / 2;
+			char buffer[ crs.restofBodyEnds + 1 ];
+
+			int rc = recv( crs.clientSocket, buffer, crs.restofBodyEnds , NO_FLAG );
+			if ( rc > 0 )
+			{
+				buffer[ rc ] = 0;
+				crs.restofBodyEnds -= rc;
+				if ( !write( crs.bodyFile, buffer, rc ) )
+					throw std::invalid_argument( "write failed to write" );
+			}
+			else
+				throw std::invalid_argument( "read the rest of body failed" );
+		}
+		else
+		{
+			char buffer[ BUFFER_SIZE ];
+			int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+			if ( rc > 0)
+			{
+				buffer[ rc ] = 0;
+				handleChunks( buffer );
+			}
+			else
+				throw std::invalid_argument( "END" );
+		}
 	}
+}
+
+void	HTTPRequest::handleChunks( std::string buffer )
+{
+	std::stringstream	ss( buffer );
+
+	
 	
 }
 
@@ -223,19 +261,28 @@ size_t eofChunk( size_t startPos, std::string& chunk )
 
 void	HTTPRequest::handleBodYrest()
 {
-	int i = 1;
+	int i = 0;
 	std::string 		line;
 	std::stringstream	ss( crs.bodYrest );
 
-	std::map<std::string, std::string> chuck;
-
 	while ( std::getline( ss, line, '\r' ) )
 	{
-		COUT( line );
-		if ( i % 2 != 0 )
+		if ( i % 2 == 0 )
+		{
 			crs.chunkSize = std::strtol( line.c_str(), NULL, 16 );
+			if ( crs.chunkSize == 0 )
+			{
+				crs.restofBodyEnds = 0;
+				break ;
+			}
+		}
 		else
+		{
+			line = line.substr( 1 );
 			write( crs.bodyFile, line.c_str(), line.length() );
+			if ( crs.chunkSize > line.length() )
+				crs.restofBodyEnds = crs.chunkSize - line.length();
+		}
 		i++;
 	}
 	crs.bodYrest.clear();
