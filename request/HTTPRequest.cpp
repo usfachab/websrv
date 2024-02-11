@@ -227,9 +227,22 @@ void	HTTPRequest::chunkedBody()
 
 void	HTTPRequest::handleChunks( std::string buffer )
 {
-	std::stringstream	ss( buffer );
+	size_t	crflPos = 0;
+	// std::string line;
+	// std::stringstream	ss( buffer );
 
-	
+	// while ( std::getline( ss, line, '\r' ) )
+	// {
+
+	// }
+	// for ( int i = 0; i < buffer.length(); i++ )
+	// {
+	// 	crflPos = eofChunk( crflPos, buffer );
+	// 	if ( crflPos != std::string::npos )
+	// 	{
+	// 		line = buffer.substr( i, crflPos);
+	// 	}
+	// }
 	
 }
 
