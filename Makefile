@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : chunked request handle the bodYrest : done start handling raw chunks"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : chunked request handle the bodYrest : raw chunks function might be good need some testing"
 	git push
 
 .PHONY: clean fclean re

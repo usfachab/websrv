@@ -1,55 +1,66 @@
 #include "./include/include.hpp"
 
-size_t eofChunk( size_t startPos, std::string& chunk )
+void	handleChunks( int fd, std::string buffer, bool& Continue, long& chunkSize )
 {
-	bool cr = false;
-	bool fl = false;
+	static int	count = 0;
+	std::string	hex;
 
-	size_t crPos = 0;
-	size_t flPos = 0;
-
-	for ( int i = startPos; i < chunk.length(); i++ )
+	for ( int i = 0; i < buffer.length(); ++i )
 	{
-		if ( chunk.at( i ) == '\r' )
+		if ( Continue == false )
 		{
-			cr = !cr;
-			crPos = i;
+			count = 0;
+			while ( i < buffer.length() && buffer[ i ] != '\r' )
+			{
+				hex.push_back( buffer[ i ] );
+				i++;
+			}
+			if ( !hex.empty() )
+			{
+				chunkSize = std::strtol( hex.c_str(), NULL, 16 );
+				hex.clear();
+				i += 2;
+				if ( chunkSize == 0 )
+					exit( 0 ) ;
+			}
 		}
-		else if ( chunk.at( i ) == '\n' )
+		while ( i < buffer.length() )
 		{
-			fl = !fl;
-			flPos = i;
+			if ( buffer[ i ] == '\r' )
+			{
+				Continue = false;
+				i += 1;
+				chunkSize = 0;
+				count = 0;
+				break ;
+			}
+			write( 1, &buffer[ i ], 1 );
+			count++;
+			i++;
 		}
-		if ( cr == true && fl == true && flPos == crPos + 1 )
-			return ( crPos );
-	}
-		return ( std::string::npos );
-}
-
-void	handleChunks( std::string buffer )
-{
-	long		chunkSize;
-	size_t		crflPos ( 0 );
-	std::string	line;
-
-	for ( int i = 0; i < buffer.length(); i++ )
-	{
-		crflPos = eofChunk( crflPos, buffer );
-		if ( crflPos != std::string::npos )
-		{
-			line = buffer.substr( i, crflPos);
-			i = crflPos;
-			crflPos += 2;
-			COUT( line );
-		}
-		i++;
+		if ( count < chunkSize )
+			Continue = true;
 	}
 }
 
 int main()
 {
-	std::string request( "B\r\nHello world\r\nE\r\nhow are my man\r\n0\r\n\r\n" );
-	handleChunks( request );
+	int fd = open( "./infile", O_RDONLY );
+	int output = open( "./output", O_CREAT | O_RDWR, 0666 );
+	long chunkSize = 0;
+	char buffer[ 256 ];
+	bool Continue = false;
 
+	while ( true )
+	{
+		int rd = read( fd, buffer, 255 );
+		if ( rd > 0 )
+		{
+			buffer[ rd ] = 0;
+			handleChunks( output,  buffer, Continue, chunkSize);
+		}
+		if ( rd <= 0 )
+			break;
+	}
 	return 0;
 }
