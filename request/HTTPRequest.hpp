@@ -27,5 +27,5 @@ private:
 	void			output();
 
 	void			handleBodYrest();
-	void			handleChunks( std::string );
+	bool			handleChunks( std::string );
 };

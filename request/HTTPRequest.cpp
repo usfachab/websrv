@@ -1,6 +1,6 @@
 #include "HTTPRequest.hpp"
 
-HTTPRequest::HTTPRequest( int clientSock ) : crs( clientSock ) {}
+HTTPRequest::HTTPRequest( int clientSock ) : crs ( clientSock ) {}
 
 HTTPRequest::~HTTPRequest() {}
 
@@ -101,7 +101,7 @@ void	HTTPRequest::validateUriAndParseQueries()
     }
 }
 
-void HTTPRequest::validateUri()
+void	HTTPRequest::validateUri()
 {
     if ( crs.uri.empty() )
         throw std::invalid_argument("Empty URI");
@@ -116,7 +116,7 @@ void HTTPRequest::validateUri()
         throw std::invalid_argument("Bad request: URI length exceeded the limit");
 }
 
-void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
+void	HTTPRequest::splitAndStoreQueries( const std::string& queryString )
 {
     std::string param;
     std::stringstream ss( queryString );
@@ -133,7 +133,7 @@ void HTTPRequest::splitAndStoreQueries( const std::string& queryString )
     }
 }
 
-void HTTPRequest::parseHeaders()
+void 	HTTPRequest::parseHeaders()
 {
 	std::string									line, first, second;
 	std::vector<std::string>					header_lines;
@@ -177,7 +177,7 @@ void HTTPRequest::parseHeaders()
 
 void	HTTPRequest::chunkedBody()
 {
-	// COUT( "Parse chunked body" );
+	COUT( "Parse chunked body" );
 
 	// char buffer[ BUFFER_SIZE ];
 
@@ -187,7 +187,7 @@ void	HTTPRequest::chunkedBody()
 		if ( crs.restofBodyEnds == 0 ) // ready to start responding
 		{
 			send( crs.clientSocket, "FUCK YOU", 9, NO_FLAG );
-			close( crs.clientSocket );
+			throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
 		}
 	}
 	else
@@ -197,8 +197,8 @@ void	HTTPRequest::chunkedBody()
 			// COUT( "start receiving what the first read not catch" );
 			if ( crs.restofBodyEnds >= 1048576 ) // amount of data that can be received is 1048576 bytes
 				crs.restofBodyEnds = crs.restofBodyEnds / 2;
-			char buffer[ crs.restofBodyEnds + 1 ];
 
+			char buffer[ crs.restofBodyEnds + 1 ];
 			int rc = recv( crs.clientSocket, buffer, crs.restofBodyEnds , NO_FLAG );
 			if ( rc > 0 )
 			{
@@ -212,12 +212,19 @@ void	HTTPRequest::chunkedBody()
 		}
 		else
 		{
+			COUT( "FRESH CHUNKS HANDLING" );
+
 			char buffer[ BUFFER_SIZE ];
+
 			int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
 			if ( rc > 0)
 			{
 				buffer[ rc ] = 0;
-				handleChunks( buffer );
+				if ( handleChunks( buffer ) )
+				{
+					send( crs.clientSocket, "FUCK YOU AGAIN", 15, NO_FLAG );
+					throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
+				}
 			}
 			else
 				throw std::invalid_argument( "END" );
@@ -225,51 +232,48 @@ void	HTTPRequest::chunkedBody()
 	}
 }
 
-void	HTTPRequest::handleChunks( std::string buffer )
+bool	HTTPRequest::handleChunks( std::string buffer )
 {
-	size_t	crflPos = 0;
-	// std::string line;
-	// std::stringstream	ss( buffer );
+	static int	count = 0;
+	std::string	hex;
 
-	// while ( std::getline( ss, line, '\r' ) )
-	// {
-
-	// }
-	// for ( int i = 0; i < buffer.length(); i++ )
-	// {
-	// 	crflPos = eofChunk( crflPos, buffer );
-	// 	if ( crflPos != std::string::npos )
-	// 	{
-	// 		line = buffer.substr( i, crflPos);
-	// 	}
-	// }
-	
-}
-
-size_t eofChunk( size_t startPos, std::string& chunk )
-{
-	bool cr = false;
-	bool fl = false;
-
-	size_t crPos = 0;
-	size_t flPos = 0;
-
-	for ( int i = startPos; i < chunk.length(); i++ )
+	for ( int i = 0; i < buffer.length(); ++i )
 	{
-		if ( chunk.at( i ) == '\r' )
+		if ( crs.Continue == false )
 		{
-			cr = !cr;
-			crPos = i;
+			count = 0;
+			while ( i < buffer.length() && buffer[ i ] != '\r' )
+			{
+				hex.push_back( buffer[ i ] );
+				i++;
+			}
+			if ( !hex.empty() )
+			{
+				crs.chunkSize = std::strtol( hex.c_str(), NULL, 16 );
+				hex.clear();
+				i += 2;
+				if ( crs.chunkSize == 0 )
+					return true;
+			}
 		}
-		else if ( chunk.at( i ) == '\n' )
+		while ( i < buffer.length() )
 		{
-			fl = !fl;
-			flPos = i;
+			if ( buffer[ i ] == '\r' )
+			{
+				crs.Continue = false;
+				i += 1;
+				crs.chunkSize = 0;
+				count = 0;
+				break ;
+			}
+			write( crs.bodyFile, &buffer[ i ], 1 );
+			count++;
+			i++;
 		}
-		if ( cr == true && fl == true && flPos == crPos + 1 )
-			return ( crPos );
+		if ( count < crs.chunkSize )
+			crs.Continue = true;
 	}
-		return ( std::string::npos );
+	return false;
 }
 
 void	HTTPRequest::handleBodYrest()
@@ -301,7 +305,7 @@ void	HTTPRequest::handleBodYrest()
 	crs.bodYrest.clear();
 }
 
-void HTTPRequest::regularBody()
+void 	HTTPRequest::regularBody()
 {
 	int rc;
 	char buffer[ BUFFER_SIZE ];
@@ -324,7 +328,7 @@ void HTTPRequest::regularBody()
 	}
 	// check the content length with received length
 }
-
+/*----------------------------------Get Methods ------------------------------------*/
 std::string HTTPRequest::randomFileNameGen()
 {
 	const std::string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -335,8 +339,6 @@ std::string HTTPRequest::randomFileNameGen()
 		filename += CHARACTERS[ rand() % CHARACTERS.length() ];
 	return ( filename );
 }
-
-/*----------------------------------Get Methods ------------------------------------*/
 
 std::string HTTPRequest::getHeaders( const std::string& header_key ) const
 {
@@ -365,12 +367,12 @@ std::string HTTPRequest::getVersion() const
 	return ( crs.version );
 }
 
-bool HTTPRequest::getConnectionStatus() const
+bool 		HTTPRequest::getConnectionStatus() const
 {
 	return ( crs.connStatus );
 }
 
-void HTTPRequest::output()
+void 		HTTPRequest::output()
 {
 	COUT( " ---------------------- Request ---------------------- " );
 	std::cout  << crs.clientRequest << std::endl;

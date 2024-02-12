@@ -122,7 +122,6 @@ void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 	}
 	catch( const std::exception& e )
 	{
-		COUT( "WHY ENTER HERE" );
 		FD_CLR( clientSocket, master_set );
 		shutdown( clientSocket, SHUT_WR );
 		std::cerr << e.what() << '\n';

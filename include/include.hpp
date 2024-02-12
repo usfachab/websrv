@@ -64,6 +64,7 @@ struct HTTPRequestStruct
 	bool			ignoreBody;
 	bool			chunkedEncoding;
 	bool			hundredContinue;
+	bool			Continue;
 	size_t 			npos;
 	size_t			contentLength;
 	std::string		bodYrest;
@@ -79,6 +80,7 @@ struct HTTPRequestStruct
 		headerEnd			=	FALSE;
 		chunkedEncoding     =   FALSE;
 		ignoreBody			=	FALSE;
+		Continue			=	FALSE;
 		once				=	TRUE;
 		clientSocket		=	clientSock;
 	}
