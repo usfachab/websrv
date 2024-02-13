@@ -184,6 +184,8 @@ void	HTTPRequest::chunkedBody()
 	if ( !crs.bodYrest.empty() )
 	{
 		handleBodYrest();
+		// COUT( crs.bodYrest );
+		// handleChunks( crs.bodYrest );
 		if ( crs.restofBodyEnds == 0 ) // ready to start responding
 		{
 			send( crs.clientSocket, "FUCK YOU", 9, NO_FLAG );
