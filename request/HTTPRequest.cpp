@@ -5,21 +5,19 @@ HTTPRequest::HTTPRequest( int clientSock ) : crs ( clientSock ) {}
 HTTPRequest::~HTTPRequest() {}
 
 void	HTTPRequest::startParsingRequest()
-{
+{	
 	crs.hundredContinue = FALSE;
 
 	if ( !crs.headerEnd )
 		receiveHeader();
-	if ( crs.headerEnd && crs.once )
+	if ( crs.headerEnd && crs.runOnce )
 	{
 		parseMethodAndURI();
 		validateUriAndParseQueries();
 		parseHeaders();
-		// output();
 	}
 	if ( crs.hundredContinue == FALSE )
 	{
-		// COUT( "start Parsing Bodies" );
 		try
 		{
 			if ( crs.ignoreBody )
@@ -33,7 +31,6 @@ void	HTTPRequest::startParsingRequest()
 		{
 			throw std::invalid_argument( e.what() );
 		}
-		
 	}
 }
 
@@ -166,7 +163,7 @@ void 	HTTPRequest::parseHeaders()
 			crs.headers[ first ] = second;
 		}
 
-		crs.once = FALSE;
+		crs.runOnce = FALSE;
 		crs.clientRequest.clear();
 	}
 	catch(const std::exception& e)
@@ -179,71 +176,42 @@ void	HTTPRequest::chunkedBody()
 {
 	COUT( "Parse chunked body" );
 
-	// char buffer[ BUFFER_SIZE ];
-
 	if ( !crs.bodYrest.empty() )
 	{
-		handleBodYrest();
-		// COUT( crs.bodYrest );
-		// handleChunks( crs.bodYrest );
-		if ( crs.restofBodyEnds == 0 ) // ready to start responding
-		{
-			send( crs.clientSocket, "FUCK YOU", 9, NO_FLAG );
-			throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
-		}
+		COUT( "THE REST CHUNKS IN BODY HANDLING" );
+		if ( chunked( crs.bodYrest ) )
+			throw std::invalid_argument( "SALINA GOOD BYE" );
 	}
 	else
 	{
-		if ( crs.restofBodyEnds > 0 ) // read what's left from bodYrest
-		{
-			// COUT( "start receiving what the first read not catch" );
-			if ( crs.restofBodyEnds >= 1048576 ) // amount of data that can be received is 1048576 bytes
-				crs.restofBodyEnds = crs.restofBodyEnds / 2;
+		COUT( "FRESH CHUNKS HANDLING" );
 
-			char buffer[ crs.restofBodyEnds + 1 ];
-			int rc = recv( crs.clientSocket, buffer, crs.restofBodyEnds , NO_FLAG );
-			if ( rc > 0 )
+		char buffer[ BUFFER_SIZE ];
+
+		int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
+		if ( rc > 0)
+		{
+			buffer[ rc ] = 0;
+			if ( chunked( buffer ) )
 			{
-				buffer[ rc ] = 0;
-				crs.restofBodyEnds -= rc;
-				if ( !write( crs.bodyFile, buffer, rc ) )
-					throw std::invalid_argument( "write failed to write" );
+				send( crs.clientSocket, "FUCK YOU AGAIN", 15, NO_FLAG );
+				throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
 			}
-			else
-				throw std::invalid_argument( "read the rest of body failed" );
 		}
 		else
-		{
-			COUT( "FRESH CHUNKS HANDLING" );
-
-			char buffer[ BUFFER_SIZE ];
-
-			int rc = recv( crs.clientSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
-			if ( rc > 0)
-			{
-				buffer[ rc ] = 0;
-				if ( handleChunks( buffer ) )
-				{
-					send( crs.clientSocket, "FUCK YOU AGAIN", 15, NO_FLAG );
-					throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
-				}
-			}
-			else
-				throw std::invalid_argument( "END" );
-		}
+			throw std::invalid_argument( "END" );
 	}
 }
 
-bool	HTTPRequest::handleChunks( std::string buffer )
+bool	HTTPRequest::chunked( std::string buffer )
 {
-	static int	count = 0;
 	std::string	hex;
 
 	for ( int i = 0; i < buffer.length(); ++i )
 	{
 		if ( crs.Continue == false )
 		{
-			count = 0;
+			crs.count = 0;
 			while ( i < buffer.length() && buffer[ i ] != '\r' )
 			{
 				hex.push_back( buffer[ i ] );
@@ -253,6 +221,8 @@ bool	HTTPRequest::handleChunks( std::string buffer )
 			{
 				crs.chunkSize = std::strtol( hex.c_str(), NULL, 16 );
 				hex.clear();
+				if ( crs.chunkSize == LONG_MAX && crs.chunkSize == LONG_MIN )
+					throw std::invalid_argument( "Bad request: invalid chunk content size" );
 				i += 2;
 				if ( crs.chunkSize == 0 )
 					return true;
@@ -260,19 +230,20 @@ bool	HTTPRequest::handleChunks( std::string buffer )
 		}
 		while ( i < buffer.length() )
 		{
-			if ( buffer[ i ] == '\r' )
+			if ( crs.count == crs.chunkSize )
 			{
 				crs.Continue = false;
 				i += 1;
 				crs.chunkSize = 0;
-				count = 0;
+				crs.count = 0;
 				break ;
 			}
-			write( crs.bodyFile, &buffer[ i ], 1 );
-			count++;
+			if ( ! write( crs.bodyFile, &buffer[ i ], 1 ) )
+				throw std::invalid_argument( "Error: connection dropped" );
+			crs.count++;
 			i++;
 		}
-		if ( count < crs.chunkSize )
+		if ( crs.count < crs.chunkSize )
 			crs.Continue = true;
 	}
 	return false;
@@ -374,19 +345,19 @@ bool 		HTTPRequest::getConnectionStatus() const
 	return ( crs.connStatus );
 }
 
-void 		HTTPRequest::output()
-{
-	COUT( " ---------------------- Request ---------------------- " );
-	std::cout  << crs.clientRequest << std::endl;
-	COUT( " -------------------- start line --------------------- " );
-	std::cout << "Method: " << crs.method << " ---- " << "uri: " << crs.uri << " ---- " << "version: " << crs.version << std::endl;
+// void 		HTTPRequest::output()
+// {
+// 	COUT( " ---------------------- Request ---------------------- " );
+// 	std::cout  << crs.clientRequest << std::endl;
+// 	COUT( " -------------------- start line --------------------- " );
+// 	std::cout << "Method: " << crs.method << " ---- " << "uri: " << crs.uri << " ---- " << "version: " << crs.version << std::endl;
 
-	COUT( " ---------------------- Queries ---------------------- " );
-	for ( auto &kv : crs.queries )
-		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+// 	COUT( " ---------------------- Queries ---------------------- " );
+// 	for ( auto &kv : crs.queries )
+// 		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
 
-	COUT( " ---------------------- Headers ---------------------- " );
-	for ( auto &kv : crs.headers )
-		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
-	COUT( " ---------------------- ------- ---------------------- " );
-}
+// 	COUT( " ---------------------- Headers ---------------------- " );
+// 	for ( auto &kv : crs.headers )
+// 		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+// 	COUT( " ---------------------- ------- ---------------------- " );
+// }

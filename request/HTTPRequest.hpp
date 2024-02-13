@@ -28,4 +28,7 @@ private:
 
 	void			handleBodYrest();
 	bool			handleChunks( std::string );
+
+
+	bool			chunked( std::string );
 };

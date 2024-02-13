@@ -53,13 +53,15 @@
 
 struct HTTPRequestStruct
 {
+	bool			chunkWithHexStart;
+
 	int				count;
 	int				restofBodyEnds;
 	long			chunkSize;
 	size_t			restOfBodYrest;
 	int				bodyFile;
 	int				clientSocket;
-	bool			once;
+	bool			runOnce;
 	bool 			headerEnd;
 	bool			connStatus;
 	bool			ignoreBody;
@@ -75,6 +77,8 @@ struct HTTPRequestStruct
 
 	HTTPRequestStruct( int clientSock )
 	{
+		chunkWithHexStart	=	TRUE;
+
 		count 				= 	0;
 		restofBodyEnds		=	-1;
 		contentLength		=	0;
@@ -83,7 +87,7 @@ struct HTTPRequestStruct
 		chunkedEncoding     =   FALSE;
 		ignoreBody			=	FALSE;
 		Continue			=	FALSE;
-		once				=	TRUE;
+		runOnce				=	TRUE;
 		clientSocket		=	clientSock;
 	}
 };
