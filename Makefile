@@ -4,7 +4,7 @@ CC      = c++ -fsanitize=address -g3
 
 OBJDIR  = obj
 
-SRC     = main.cpp ./server/Server.cpp ./request/HTTPRequest.cpp
+SRC     = main.cpp ./server/Server.cpp ./request/HTTPRequestParser.cpp
 
 OBJ     = $(addprefix $(OBJDIR)/, $(SRC:.cpp=.o))
 
@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : chunked request handle the bodYrest : raw chunks function might be good need some testing"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : chunked request handle the bodYrest : binary chunk file transfert : image OK , video need to be tested"
 	git push
 
 .PHONY: clean fclean re

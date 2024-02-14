@@ -74,6 +74,7 @@ void Server::CheckReadableSockets( void )
 {
 	do
 	{
+		COUT( "BACK TO SELECT AGAIN" );
 		memcpy( &working_set, &master_set, sizeof( master_set ) );
 		rc = select( maxSo + 1, &working_set, NULL, NULL, &timeout );
 		ERROR( "select", rc );
@@ -104,8 +105,8 @@ void Server::acceptIncomingConnections()
 		if ( newSo == -1 )
 			break ;
 		FD_SET( newSo, &master_set );
-		HTTPRequest clientData( newSo );
-		clientObject.insert( std::pair<int, HTTPRequest>( newSo, clientData ) );
+		HTTPRequestParser clientData( newSo );
+		clientObject.insert( std::pair<int, HTTPRequestParser>( newSo, clientData ) );
 		if ( newSo > maxSo )
 			maxSo = newSo;
 	}
@@ -113,12 +114,12 @@ void Server::acceptIncomingConnections()
 
 void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 {
-	std::map<int , HTTPRequest>::iterator it;
+	std::map<int , HTTPRequestParser>::iterator it;
 
 	try
 	{
 		it = clientObject.find( clientSocket );
-		it->second.startParsingRequest();
+		it->second.processIncomingRequest();
 	}
 	catch( const std::exception& e )
 	{

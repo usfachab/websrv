@@ -29,7 +29,7 @@
 #define CLOSESOCKET			TRUE
 #define CLOSE( VAL, SOCK )	if ( VAL == TRUE ){ close( SOCK );  return ; }
 #define OK					std::cout << "OK" << std::endl;
-#define BUFFER_SIZE			1024
+#define BUFFER_SIZE			4096
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP
 #define SA					struct sockaddr
 #define SAIN				struct	sockaddr_in
@@ -51,44 +51,35 @@
 #define RES_HEADER	"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n"
 #define RES_BODY	"<html>\r\n<body>\r\n<h1>Hello, World!</h1>\r\n</body>\r\n</html>\r\n"
 
-struct HTTPRequestStruct
+struct HTTPRequestParserStruct
 {
-	bool			chunkWithHexStart;
-
-	int				count;
-	int				restofBodyEnds;
-	long			chunkSize;
-	size_t			restOfBodYrest;
-	int				bodyFile;
-	int				clientSocket;
-	bool			runOnce;
-	bool 			headerEnd;
-	bool			connStatus;
-	bool			ignoreBody;
+	size_t			count;
+	long			currentChunkSize;
+	int				bodyFileDescriptor;
+	int				clientConnectionSocket;
+	bool			initialProcessingDone;
+	bool 			headerProcessed;
+	bool			skipRequestBody;
 	bool			chunkedEncoding;
-	bool			hundredContinue;
+	bool			expectContinueResponse;
 	bool			Continue;
-	size_t 			npos;
-	size_t			contentLength;
-	std::string		bodYrest;
-	std::string		clientRequest;
+	size_t			requestBodyLength;
+	std::string		remainingRequestBody;
+	std::string		fullClientRequest;
     std::string 	uri, method, version;
     std::map<std::string, std::string> headers, queries;
 
-	HTTPRequestStruct( int clientSock )
+	HTTPRequestParserStruct( int clientSock )
 	{
-		chunkWithHexStart	=	TRUE;
-
-		count 				= 	0;
-		restofBodyEnds		=	-1;
-		contentLength		=	0;
-		connStatus			=	TRUE;
-		headerEnd			=	FALSE;
-		chunkedEncoding     =   FALSE;
-		ignoreBody			=	FALSE;
-		Continue			=	FALSE;
-		runOnce				=	TRUE;
-		clientSocket		=	clientSock;
+		count 					= 	0;
+		requestBodyLength		=	0;
+		headerProcessed			=	FALSE;
+		chunkedEncoding     	=   FALSE;
+		skipRequestBody			=	FALSE;
+		Continue				=	FALSE;
+		expectContinueResponse 	= 	FALSE;
+		initialProcessingDone	=	TRUE;
+		clientConnectionSocket	=	clientSock;
 	}
 };
 

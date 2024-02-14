@@ -1,7 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 #include "../include/include.hpp"
-#include "../request/HTTPRequest.hpp"
+#include "../request/HTTPRequestParser.hpp"
 #include "../response/HTTPResponse.hpp"
 
 class Server
@@ -17,7 +17,7 @@ private:
 	socklen_t			clientAddrSize;
 	struct timeval      timeout;
 
-	std::map<int, HTTPRequest> clientObject;
+	std::map<int, HTTPRequestParser> clientObject;
 
 public:
 	Server();
