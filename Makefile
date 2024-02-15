@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f request/folder/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : chunked request handle the bodYrest : binary chunk file transfert : image OK , video need to be tested"
+	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : binary chunk file transfert : image OK , video need to be tested"
 	git push
 
 .PHONY: clean fclean re

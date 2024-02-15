@@ -68,7 +68,7 @@ struct HTTPRequestParserStruct
 	std::string		fullClientRequest;
     std::string 	uri, method, version;
     std::map<std::string, std::string> headers, queries;
-
+	
 	HTTPRequestParserStruct( int clientSock )
 	{
 		count 					= 	0;

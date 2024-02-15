@@ -172,20 +172,20 @@ void 	HTTPRequestParser::extractHttpHeaders()
 
 void	HTTPRequestParser::processChunkedRequestBody()
 {
-	COUT( "Parse chunked body" );
+	// COUT( "Parse chunked body" );
 
 	if ( !_s_.remainingRequestBody.empty() )
 	{
 		if ( chunkedComplete( _s_.remainingRequestBody ) )
 		{
-			send( _s_.clientConnectionSocket, "FUCK YOU", 9, NO_FLAG );
+			send( _s_.clientConnectionSocket, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
 			throw std::invalid_argument( "CHUNK LI DAZ 3LA WJEH HEADER WAS PROCESSED" );
 		}
 		_s_.remainingRequestBody.clear();
 	}
 	else
 	{
-		COUT( "START FRESH CHUNKS PROCESSING" );
+		// COUT( "START FRESH CHUNKS PROCESSING" );
 
 		char buffer[ BUFFER_SIZE ];
 
@@ -209,7 +209,7 @@ void	HTTPRequestParser::processChunkedRequestBody()
 bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
 {
 	std::string	hex;
-	
+
 	for ( int i = 0; i < buffer.length(); ++i )
 	{
 		if ( _s_.Continue == false )
@@ -231,16 +231,21 @@ bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
 				hex.clear();
 			}
 			else
+			{
+				COUT( "buffer: " + buffer );
+				std::cout << "count: " << _s_.count << " | " << "chunk size: " << _s_.currentChunkSize << std::endl;
 				throw std::invalid_argument( "Bad Request: chunkedComplete : hex.empty" );
+			}
 		}
 		while ( i < buffer.length() )
 		{
 			if ( _s_.count == _s_.currentChunkSize )
 			{
-				_s_.Continue = false;
+				_s_.count			 	=	0;
+				_s_.currentChunkSize	=	0;
+				_s_.Continue			=	false;
 				i += 1;
-				_s_.currentChunkSize = 0;
-				_s_.count = 0;
+				OK;
 				break ;
 			}
 			if ( ! write( _s_.bodyFileDescriptor, &buffer[ i ], 1 ) )
@@ -305,4 +310,3 @@ std::string HTTPRequestParser::generateRandomFileName()
 // 		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
 // 	COUT( " ---------------------- ------- ---------------------- " );
 // }
-
