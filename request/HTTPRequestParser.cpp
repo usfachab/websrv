@@ -279,6 +279,10 @@ void 	HTTPRequestParser::processRegularRequestBody()
 	{
 		close( _s_.bodyFileDescriptor );
 		throw std::invalid_argument( "End writing to body file or connection closed" );
+
+
+
+		
 	}
 	// check the content length with received length
 }
