@@ -21,15 +21,15 @@ clean:
 	@rm -f $(OBJ)
 
 fclean: clean
-	@rm -f request/folder/*
+	@rm -f data/*
 	@rm -fr $(TARGET) $(OBJDIR)
 
 re: fclean $(TARGET)
 
 git: fclean
-	@rm -f request/folder/*
+	@rm -f data/*
 	git add .
-	git commit -m "PARSSING CLIENT REQUEST ALMOST DONE : binary chunk file transfert : image OK , video need to be tested"
+	git commit -m "PARSSING CLIENT POST REQUEST DONE : Large video uploaded -> OK"
 	git push
 
 .PHONY: clean fclean re

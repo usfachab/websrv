@@ -2,7 +2,6 @@
 #define SERVER_HPP
 #include "../include/include.hpp"
 #include "../request/HTTPRequestParser.hpp"
-#include "../response/HTTPResponse.hpp"
 
 class Server
 {

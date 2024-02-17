@@ -1,11 +1,22 @@
 #include "HTTPRequestParser.hpp"
+#include <cstddef>
+#include <cstdlib>
+#include <stdexcept>
+#include <string>
 
-HTTPRequestParser::HTTPRequestParser( int clientConnectionSocket ) : _s_ ( clientConnectionSocket ) {}
+HTTPRequestParser::HTTPRequestParser( int clientConnectionSocket ) : _s_ ( clientConnectionSocket ), clientDataFile( new std::ofstream ) {}
 
-HTTPRequestParser::~HTTPRequestParser() {}
+HTTPRequestParser::~HTTPRequestParser() 
+{
+	// if (clientDataFile) {
+    //         clientDataFile->close();
+    //         delete clientDataFile;
+    //     }
+}
 
 void	HTTPRequestParser::processIncomingRequest()
 {	
+	_s_.expectContinueResponse = FALSE;
 	if ( !_s_.headerProcessed )
 		fetchRequestHeader();
 	if ( _s_.headerProcessed && _s_.initialProcessingDone )
@@ -22,8 +33,8 @@ void	HTTPRequestParser::processIncomingRequest()
 				return ;
 			if ( _s_.chunkedEncoding )
 				processChunkedRequestBody();
-			if ( _s_.requestBodyLength > 0 )
-				processRegularRequestBody();
+			// if ( _s_.requestBodyLength > 0 )
+			// 	processRegularRequestBody();
 		}
 		catch(const std::exception& e)
 		{
@@ -72,8 +83,8 @@ void	HTTPRequestParser::extractMethodAndUri()
 			_s_.skipRequestBody = TRUE;
 		if ( _s_.method == "POST" )
 		{
-			std::string bodyFilePath	=	"./request/folder/" + generateRandomFileName();
-			_s_.bodyFileDescriptor				=	open( bodyFilePath.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666 );
+			std::string bodyFilePath	=	"./data/" + generateRandomFileName();
+			clientDataFile->open( bodyFilePath.c_str(), std::ios::out | std::ios::trunc );
 		}
 	}
 	catch( const std::exception& e )
@@ -150,12 +161,16 @@ void 	HTTPRequestParser::extractHttpHeaders()
 			first	=	it->substr( 0, it->find_first_of( ':' ) );
 			second	=	it->substr( it->find_first_of( ':' ) + 2 );
 
-			if ( first == "Content-Length" )
+			if ( first.compare("Content-Length") == 0 )
+			{
+				// COUT( second.c_str() );
 				_s_.requestBodyLength = std::atoi( second.c_str() );
+			}
 			if ( first == "Transfer-Encoding" && second == "chunked")
 				_s_.chunkedEncoding = TRUE;
-			else if ( first == "Expect" && second == "100-continue")
+			if ( first == "Expect" && second == "100-continue")
 				_s_.expectContinueResponse = TRUE;
+			// COUT( _s_.requestBodyLength );
 			if ( _s_.requestBodyLength > 0 && _s_.chunkedEncoding == TRUE )
 				throw std::exception();
 			_s_.headers[ first ] = second;
@@ -172,8 +187,6 @@ void 	HTTPRequestParser::extractHttpHeaders()
 
 void	HTTPRequestParser::processChunkedRequestBody()
 {
-	// COUT( "Parse chunked body" );
-
 	if ( !_s_.remainingRequestBody.empty() )
 	{
 		if ( chunkedComplete( _s_.remainingRequestBody ) )
@@ -185,8 +198,6 @@ void	HTTPRequestParser::processChunkedRequestBody()
 	}
 	else
 	{
-		// COUT( "START FRESH CHUNKS PROCESSING" );
-
 		char buffer[ BUFFER_SIZE ];
 
 		int rc = recv( _s_.clientConnectionSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
@@ -206,58 +217,97 @@ void	HTTPRequestParser::processChunkedRequestBody()
 	}
 }
 
+long	HTTPRequestParser::parseChunkHeader( std::string& buffer )
+{
+	std::string	chunkHead;
+
+	chunkHead = buffer.substr( _s_.chunkHeaderStart, buffer.find( "\r\n" ) );
+	if ( !chunkHead.empty() )
+		_s_.currentChunkSize = std::strtol( chunkHead.c_str(), NULL, 16 );
+	else
+		throw std::invalid_argument( "invalid chunk header" );
+
+	_s_.chunkHeaderEnd = chunkHead.length() + 2;
+	buffer = buffer.substr( _s_.chunkHeaderEnd );
+	return _s_.currentChunkSize;
+}
+
 bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
 {
-	std::string	hex;
+	size_t	bufflen ( buffer.length() );
+	long	chunkHeaderStatus;
 
-	for ( int i = 0; i < buffer.length(); ++i )
+	while ( bufflen != 0 )
 	{
-		if ( _s_.Continue == false )
+		if ( _s_.isChunkHeader == true )
 		{
-			_s_.count = 0;
-			while ( i < buffer.length() && buffer[ i ] != '\r' )
-			{
-				hex.push_back( buffer[ i ] );
-				i++;
-			}
-			if ( !hex.empty() )
-			{
-				_s_.currentChunkSize = std::strtol( hex.c_str(), NULL, 16 );
-				if ( _s_.currentChunkSize == LONG_MAX && _s_.currentChunkSize == LONG_MIN )
-					throw std::invalid_argument( "Bad request: invalid chunk content size" );
-				i += 2;
-				if ( _s_.currentChunkSize == 0 )
-					return true;
-				hex.clear();
-			}
-			else
-			{
-				COUT( "buffer: " + buffer );
-				std::cout << "count: " << _s_.count << " | " << "chunk size: " << _s_.currentChunkSize << std::endl;
-				throw std::invalid_argument( "Bad Request: chunkedComplete : hex.empty" );
-			}
+			_s_.currentChunkSize = parseChunkHeader( buffer );
+			if ( _s_.currentChunkSize == 0 )
+				return true;
+			bufflen = buffer.length();
 		}
-		while ( i < buffer.length() )
+		if ( _s_.currentChunkSize > buffer.length() )
 		{
-			if ( _s_.count == _s_.currentChunkSize )
-			{
-				_s_.count			 	=	0;
-				_s_.currentChunkSize	=	0;
-				_s_.Continue			=	false;
-				i += 1;
-				OK;
-				break ;
-			}
-			if ( ! write( _s_.bodyFileDescriptor, &buffer[ i ], 1 ) )
-				throw std::invalid_argument( "Error: connection dropped" );
-			_s_.count++;
-			i++;
+			clientDataFile->write( buffer.c_str(),  buffer.length() );
+			_s_.currentChunkSize -= buffer.length();
+			_s_.isChunkHeader = false;
+			return ( false );
 		}
-		if ( _s_.count < _s_.currentChunkSize )
-			_s_.Continue = true;
+		else if ( _s_.currentChunkSize < buffer.length() )
+		{
+			clientDataFile->write( buffer.c_str(),  _s_.currentChunkSize );
+			bufflen -= _s_.currentChunkSize + 2;
+			buffer = buffer.substr( _s_.currentChunkSize + 2 );
+			_s_.isChunkHeader = true;
+		}
 	}
-	return false;
+	return true;
 }
+
+// bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
+// {
+// 	std::string	hex;
+
+// 	for ( int i = 0; i < buffer.length(); ++i )
+// 	{
+// 		if ( _s_.Continue == false )
+// 		{
+// 			_s_.count = 0;
+// 			hex = buffer.substr( i, buffer.find( "\r\n" ) );
+// 			i += hex.length();
+// 			if ( !hex.empty() )
+// 			{
+// 				_s_.currentChunkSize = std::strtol( hex.c_str(), NULL, 16 );
+// 				if ( _s_.currentChunkSize == LONG_MAX || _s_.currentChunkSize == LONG_MIN )
+// 					throw std::invalid_argument( "Bad request: invalid chunk content size" );
+// 				i += 2;
+// 				if ( _s_.currentChunkSize == 0 )
+// 					return true;
+// 				hex.clear();
+// 			}
+// 			else
+// 				throw std::invalid_argument( "Bad Request: chunkedComplete : hex.empty" );
+// 		}
+// 		// while ( i < buffer.length() )
+// 		// {
+// 		// 	if ( _s_.count == _s_.currentChunkSize )
+// 		// 	{
+// 		// 		_s_.count			 	=	0;
+// 		// 		_s_.currentChunkSize	=	0;
+// 		// 		_s_.Continue			=	false;
+// 		// 		i += 1;
+// 		// 		break ;
+// 		// 	}
+// 		// 	clientDataFile->write(&buffer[i], 1);
+// 		// 	_s_.count++;
+// 		// 	i++;
+// 		// }
+// 		// if ( _s_.currentChunkSize < buffer.length() -  )
+// 		if ( _s_.count < _s_.currentChunkSize )
+// 			_s_.Continue = true;
+// 	}
+// 	return false;
+// }
 
 void 	HTTPRequestParser::processRegularRequestBody()
 {
@@ -279,12 +329,7 @@ void 	HTTPRequestParser::processRegularRequestBody()
 	{
 		close( _s_.bodyFileDescriptor );
 		throw std::invalid_argument( "End writing to body file or connection closed" );
-
-
-
-		
 	}
-	// check the content length with received length
 }
 /*----------------------------------Get Methods ------------------------------------*/
 std::string HTTPRequestParser::generateRandomFileName()

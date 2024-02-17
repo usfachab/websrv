@@ -21,6 +21,9 @@
 #include <exception>
 #include <algorithm>
 #include <ctime>
+#include <limits.h>
+#include <errno.h>
+#include <fstream>
 
 #define	ONCE				TRUE
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
@@ -29,7 +32,7 @@
 #define CLOSESOCKET			TRUE
 #define CLOSE( VAL, SOCK )	if ( VAL == TRUE ){ close( SOCK );  return ; }
 #define OK					std::cout << "OK" << std::endl;
-#define BUFFER_SIZE			4096
+#define BUFFER_SIZE			2048
 #define SOCKET_TYPE_INET	AF_INET, SOCK_STREAM, IPPROTO_TCP
 #define SA					struct sockaddr
 #define SAIN				struct	sockaddr_in
@@ -54,6 +57,7 @@
 struct HTTPRequestParserStruct
 {
 	size_t			count;
+	bool			Continue;
 	long			currentChunkSize;
 	int				bodyFileDescriptor;
 	int				clientConnectionSocket;
@@ -62,23 +66,29 @@ struct HTTPRequestParserStruct
 	bool			skipRequestBody;
 	bool			chunkedEncoding;
 	bool			expectContinueResponse;
-	bool			Continue;
+	bool			isChunkHeader;
 	size_t			requestBodyLength;
 	std::string		remainingRequestBody;
 	std::string		fullClientRequest;
     std::string 	uri, method, version;
     std::map<std::string, std::string> headers, queries;
 	
+	size_t			chunkHeaderStart;
+	size_t			chunkHeaderEnd;
+	
 	HTTPRequestParserStruct( int clientSock )
 	{
+		Continue				=	false;
+		chunkHeaderStart		=	0;
+		currentChunkSize		=	-1;
 		count 					= 	0;
 		requestBodyLength		=	0;
-		headerProcessed			=	FALSE;
-		chunkedEncoding     	=   FALSE;
-		skipRequestBody			=	FALSE;
-		Continue				=	FALSE;
-		expectContinueResponse 	= 	FALSE;
-		initialProcessingDone	=	TRUE;
+		headerProcessed			=	false;
+		chunkedEncoding     	=   false;
+		skipRequestBody			=	false;
+		expectContinueResponse 	= 	false;
+		isChunkHeader			=	true;
+		initialProcessingDone	=	true;
 		clientConnectionSocket	=	clientSock;
 	}
 };

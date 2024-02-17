@@ -1,6 +1,7 @@
 #include "../include/include.hpp"
+#include <fstream>
 
-class HTTPRequestParser 
+class HTTPRequestParser
 {
 public:
     HTTPRequestParser( int );
@@ -11,6 +12,7 @@ public:
 private:
 	HTTPRequestParserStruct _s_;
 
+	std::ofstream	*clientDataFile;
 	void			fetchRequestHeader();
     void 			extractMethodAndUri();
 	void			validateUriAndExtractQueries();
@@ -23,4 +25,5 @@ private:
 	// void			output();
 
 	std::string		generateRandomFileName();
+	long			parseChunkHeader( std::string& );
 };
