@@ -1,5 +1,5 @@
 #include "../include/include.hpp"
-#include <fstream>
+#include <string>
 
 class HTTPRequestParser
 {
@@ -18,12 +18,15 @@ private:
 	void			validateUriAndExtractQueries();
 	void			decomposeQueryParameters( const std::string& query );
     void 			extractHttpHeaders();
-	void			processChunkedRequestBody();
 	bool			chunkedComplete( std::string& );
+	void			processChunkedRequestBody();
+	void			processMultipartRequestBody();
     void 			processRegularRequestBody();
 	void			validateUri();
-	// void			output();
+	void			output();
 
 	std::string		generateRandomFileName();
+	std::string&	toUpperCase( std::string& );
 	long			parseChunkHeader( std::string& );
+	bool			examinHeaders( std::string , std::string );
 };

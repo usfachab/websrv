@@ -33,7 +33,7 @@ void	Server::initServer( void )
 	EXIT( "setsockopt", rc );
 
 	// rc = fcntl( so, F_SETFL, O_NONBLOCK, FD_CLOEXEC );
-	rc = fcntl( so, F_SETFL, fcntl(so, F_GETFL, 0) | O_NONBLOCK);
+	rc = fcntl( so, F_SETFL, fcntl(so, F_GETFL, 0) | O_NONBLOCK );
 	EXIT( "fcntl", rc );
 
 	/* ANCHOR fcntl argument
@@ -95,7 +95,6 @@ void Server::CheckReadableSockets( void )
 	} while ( serverEnd == FALSE );
 }
 
-
 void Server::acceptIncomingConnections()
 {
 	while ( TRUE )
@@ -106,7 +105,7 @@ void Server::acceptIncomingConnections()
 			break ;
 		FD_SET( newSo, &master_set );
 		HTTPRequestParser clientData( newSo );
-		clientObject.insert( std::make_pair( newSo, clientData ) );
+		clientObject.insert( std::pair<int, HTTPRequestParser>( newSo, clientData) );
 		if ( newSo > maxSo )
 			maxSo = newSo;
 	}
@@ -127,6 +126,4 @@ void Server::recvAndSendClientData( int clientSocket, fd_set* master_set  )
 		shutdown( clientSocket, SHUT_WR );
 		std::cerr << e.what() << '\n';
 	}
-	
-	
 }

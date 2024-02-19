@@ -29,7 +29,7 @@ re: fclean $(TARGET)
 git: fclean
 	@rm -f data/*
 	git add .
-	git commit -m "PARSSING CLIENT POST REQUEST DONE : Large video uploaded -> OK"
-	git push -f
+	git commit -m "PARSSING CLIENT POST REQUEST DONE : start implimanating extension logic"
+	git push
 
 .PHONY: clean fclean re

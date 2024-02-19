@@ -13,17 +13,20 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
-#include <fstream>
 #include <vector>
 #include <utility>
 #include <functional>
 #include <stdio.h>
-#include <exception>
 #include <algorithm>
 #include <ctime>
 #include <limits.h>
 #include <errno.h>
-#include <fstream>
+#include <climits>
+#include <cstddef>
+#include <cstdlib>
+#include <stdexcept>
+#include <ios>
+
 
 #define	ONCE				TRUE
 #define	CONTINUE			"HTTP/1.1 100 Continue\r\n\r\n"
@@ -67,6 +70,7 @@ struct HTTPRequestParserStruct
 	bool			chunkedEncoding;
 	bool			expectContinueResponse;
 	bool			isChunkHeader;
+	bool			multipartEncoding;
 	size_t			requestBodyLength;
 	std::string		remainingRequestBody;
 	std::string		fullClientRequest;
@@ -89,6 +93,7 @@ struct HTTPRequestParserStruct
 		expectContinueResponse 	= 	false;
 		isChunkHeader			=	true;
 		initialProcessingDone	=	true;
+		multipartEncoding		=	false;
 		clientConnectionSocket	=	clientSock;
 	}
 };

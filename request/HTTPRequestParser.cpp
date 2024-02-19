@@ -1,17 +1,22 @@
 #include "HTTPRequestParser.hpp"
-#include <cstddef>
-#include <cstdlib>
-#include <stdexcept>
-#include <string>
 
-HTTPRequestParser::HTTPRequestParser( int clientConnectionSocket ) : _s_ ( clientConnectionSocket ), clientDataFile( new std::ofstream ) {}
+HTTPRequestParser::HTTPRequestParser( int clientConnectionSocket )
+:	_s_ ( clientConnectionSocket ),
+	clientDataFile( new std::ofstream )
+{}
 
 HTTPRequestParser::~HTTPRequestParser() 
 {
-	// if (clientDataFile) {
-    //         clientDataFile->close();
-    //         delete clientDataFile;
-    //     }
+	// if ( clientDataFile )
+	// {
+		// if ( clientDataFile->is_open() )
+		// {
+		// // 	clientDataFile->close();
+		// // 	delete clientDataFile;
+		// }
+    // }
+	// COUT( _s_.clientConnectionSocket );
+	// COUT( "client object destructed" );
 }
 
 void	HTTPRequestParser::processIncomingRequest()
@@ -24,6 +29,7 @@ void	HTTPRequestParser::processIncomingRequest()
 		extractMethodAndUri();
 		validateUriAndExtractQueries();
 		extractHttpHeaders();
+		// output();
 	}
 	if ( _s_.expectContinueResponse == FALSE )
 	{
@@ -33,8 +39,13 @@ void	HTTPRequestParser::processIncomingRequest()
 				return ;
 			if ( _s_.chunkedEncoding )
 				processChunkedRequestBody();
-			// if ( _s_.requestBodyLength > 0 )
-			// 	processRegularRequestBody();
+			// if ( _s_.multipartEncoding )
+			// 	processMultipartRequestBody();
+			else if ( _s_.requestBodyLength > 0 )
+			{
+				COUT( "process Regular Request Body" );
+				processRegularRequestBody();
+			}
 		}
 		catch(const std::exception& e)
 		{
@@ -84,7 +95,7 @@ void	HTTPRequestParser::extractMethodAndUri()
 		if ( _s_.method == "POST" )
 		{
 			std::string bodyFilePath	=	"./data/" + generateRandomFileName();
-			clientDataFile->open( bodyFilePath.c_str(), std::ios::out | std::ios::trunc );
+			clientDataFile->open( bodyFilePath.c_str(), std::ios::binary | std::ios::trunc );
 		}
 	}
 	catch( const std::exception& e )
@@ -160,19 +171,10 @@ void 	HTTPRequestParser::extractHttpHeaders()
 		{
 			first	=	it->substr( 0, it->find_first_of( ':' ) );
 			second	=	it->substr( it->find_first_of( ':' ) + 2 );
+			
+			if ( !examinHeaders( first, second ) )
+				throw std::invalid_argument( "bad request: Invalid header" );
 
-			if ( first.compare("Content-Length") == 0 )
-			{
-				// COUT( second.c_str() );
-				_s_.requestBodyLength = std::atoi( second.c_str() );
-			}
-			if ( first == "Transfer-Encoding" && second == "chunked")
-				_s_.chunkedEncoding = TRUE;
-			if ( first == "Expect" && second == "100-continue")
-				_s_.expectContinueResponse = TRUE;
-			// COUT( _s_.requestBodyLength );
-			if ( _s_.requestBodyLength > 0 && _s_.chunkedEncoding == TRUE )
-				throw std::exception();
 			_s_.headers[ first ] = second;
 		}
 
@@ -187,6 +189,7 @@ void 	HTTPRequestParser::extractHttpHeaders()
 
 void	HTTPRequestParser::processChunkedRequestBody()
 {
+	COUT( "HERE WE GO AGAIN" );
 	if ( !_s_.remainingRequestBody.empty() )
 	{
 		if ( chunkedComplete( _s_.remainingRequestBody ) )
@@ -207,6 +210,7 @@ void	HTTPRequestParser::processChunkedRequestBody()
 			std::string receivedData( buffer, rc );
 			if ( chunkedComplete( receivedData ) )
 			{
+				clientDataFile->close();
 				send( _s_.clientConnectionSocket, "FUCK YOU AGAIN", 15, NO_FLAG );
 				throw std::invalid_argument( "SARF LI KATSAL HANTA KHDITIH" );
 			}
@@ -225,7 +229,9 @@ long	HTTPRequestParser::parseChunkHeader( std::string& buffer )
 	if ( !chunkHead.empty() )
 		_s_.currentChunkSize = std::strtol( chunkHead.c_str(), NULL, 16 );
 	else
-		throw std::invalid_argument( "invalid chunk header" );
+		throw std::invalid_argument( "Bad request: invalid chunk size header" );
+	if ( _s_.currentChunkSize == LONG_MAX || _s_.currentChunkSize == LONG_MIN )
+		throw std::invalid_argument( "Bad request: invalid chunk size header" );
 
 	_s_.chunkHeaderEnd = chunkHead.length() + 2;
 	buffer = buffer.substr( _s_.chunkHeaderEnd );
@@ -253,7 +259,7 @@ bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
 			_s_.isChunkHeader = false;
 			return ( false );
 		}
-		else if ( _s_.currentChunkSize < buffer.length() )
+		else if ( _s_.currentChunkSize <= buffer.length() ) // add equal check it again
 		{
 			clientDataFile->write( buffer.c_str(),  _s_.currentChunkSize );
 			bufflen -= _s_.currentChunkSize + 2;
@@ -264,51 +270,6 @@ bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
 	return true;
 }
 
-// bool	HTTPRequestParser::chunkedComplete( std::string& buffer )
-// {
-// 	std::string	hex;
-
-// 	for ( int i = 0; i < buffer.length(); ++i )
-// 	{
-// 		if ( _s_.Continue == false )
-// 		{
-// 			_s_.count = 0;
-// 			hex = buffer.substr( i, buffer.find( "\r\n" ) );
-// 			i += hex.length();
-// 			if ( !hex.empty() )
-// 			{
-// 				_s_.currentChunkSize = std::strtol( hex.c_str(), NULL, 16 );
-// 				if ( _s_.currentChunkSize == LONG_MAX || _s_.currentChunkSize == LONG_MIN )
-// 					throw std::invalid_argument( "Bad request: invalid chunk content size" );
-// 				i += 2;
-// 				if ( _s_.currentChunkSize == 0 )
-// 					return true;
-// 				hex.clear();
-// 			}
-// 			else
-// 				throw std::invalid_argument( "Bad Request: chunkedComplete : hex.empty" );
-// 		}
-// 		// while ( i < buffer.length() )
-// 		// {
-// 		// 	if ( _s_.count == _s_.currentChunkSize )
-// 		// 	{
-// 		// 		_s_.count			 	=	0;
-// 		// 		_s_.currentChunkSize	=	0;
-// 		// 		_s_.Continue			=	false;
-// 		// 		i += 1;
-// 		// 		break ;
-// 		// 	}
-// 		// 	clientDataFile->write(&buffer[i], 1);
-// 		// 	_s_.count++;
-// 		// 	i++;
-// 		// }
-// 		// if ( _s_.currentChunkSize < buffer.length() -  )
-// 		if ( _s_.count < _s_.currentChunkSize )
-// 			_s_.Continue = true;
-// 	}
-// 	return false;
-// }
-
 void 	HTTPRequestParser::processRegularRequestBody()
 {
 	int rc;
@@ -316,22 +277,44 @@ void 	HTTPRequestParser::processRegularRequestBody()
 
 	if ( !_s_.remainingRequestBody.empty() )
 	{
-		write( _s_.bodyFileDescriptor, _s_.remainingRequestBody.c_str(), _s_.remainingRequestBody.length() );
 		_s_.remainingRequestBody.clear();
 	}
 	rc = recv( _s_.clientConnectionSocket, buffer, BUFFER_SIZE - 1, NO_FLAG );
 	if ( rc > 0 )
 	{
 		buffer[ rc ] = 0;
-		write( _s_.bodyFileDescriptor, buffer,  rc );
 	}
 	else if ( rc <= 0 )
-	{
-		close( _s_.bodyFileDescriptor );
 		throw std::invalid_argument( "End writing to body file or connection closed" );
-	}
 }
-/*----------------------------------Get Methods ------------------------------------*/
+
+bool	HTTPRequestParser::examinHeaders( std::string first, std::string second )
+{
+	if ( toUpperCase( first ) == "CONTENT-LENGTH" )
+		_s_.requestBodyLength = std::atoi( second.c_str() );
+	// std::cout << "first: " << toUpperCase( first ) << " | " << "second: " << toUpperCase( second ) << std::endl;
+	if ( toUpperCase( first ) == "TRANSFER-ENCODING" && toUpperCase( second ) == "CHUNKED")
+		_s_.chunkedEncoding = TRUE;
+	if ( toUpperCase( first ) == "EXPECT" && toUpperCase( second ) == "100-CONTINUE")
+		_s_.expectContinueResponse = TRUE;
+	if ( toUpperCase( first ) == "CONTENT-TYPE" &&  toUpperCase( second ).find( "MULTIPART/" ) != std::string::npos )
+		_s_.multipartEncoding = TRUE;
+	if ( ( _s_.requestBodyLength > 0 && _s_.chunkedEncoding ) || ( _s_.chunkedEncoding && _s_.multipartEncoding ) )
+		return false;
+	
+	return true;
+}
+
+std::string& HTTPRequestParser::toUpperCase( std::string& str )
+{
+	for ( int i = 0; i < str.length(); i++  )
+	{
+		if ( str[ i ] >= 97 && str[ i ] <= 122 )
+			str[ i ] -= 32;
+	}
+	return str;
+}
+
 std::string HTTPRequestParser::generateRandomFileName()
 {
 	const std::string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -343,19 +326,19 @@ std::string HTTPRequestParser::generateRandomFileName()
 	return ( filename );
 }
 
-// void 		HTTPRequestParser::output()
-// {
-// 	COUT( " ---------------------- Request ---------------------- " );
-// 	std::cout  << _s_.fullClientRequest << std::endl;
-// 	COUT( " -------------------- start line --------------------- " );
-// 	std::cout << "Method: " << _s_.method << " ---- " << "uri: " << _s_.uri << " ---- " << "version: " << _s_.version << std::endl;
+void 		HTTPRequestParser::output()
+{
+	COUT( " ---------------------- Request ---------------------- " );
+	std::cout  << _s_.fullClientRequest << std::endl;
+	COUT( " -------------------- start line --------------------- " );
+	std::cout << "Method: " << _s_.method << " ---- " << "uri: " << _s_.uri << " ---- " << "version: " << _s_.version << std::endl;
 
-// 	COUT( " ---------------------- Queries ---------------------- " );
-// 	for ( auto &kv : _s_.queries )
-// 		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+	COUT( " ---------------------- Queries ---------------------- " );
+	for ( auto &kv : _s_.queries )
+		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
 
-// 	COUT( " ---------------------- Headers ---------------------- " );
-// 	for ( auto &kv : _s_.headers )
-// 		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
-// 	COUT( " ---------------------- ------- ---------------------- " );
-// }
+	COUT( " ---------------------- Headers ---------------------- " );
+	for ( auto &kv : _s_.headers )
+		std::cout << "key: " << kv.first << " value: " << kv.second << std::endl;
+	COUT( " ---------------------- ------- ---------------------- " );
+}
