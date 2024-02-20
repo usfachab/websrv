@@ -30,6 +30,6 @@ git: fclean
 	@rm -f data/*
 	git add .
 	git commit -m "PARSSING CLIENT POST REQUEST DONE : start implimanating extension logic"
-	git push
+	git push -f
 
 .PHONY: clean fclean re
