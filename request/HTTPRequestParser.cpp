@@ -189,12 +189,11 @@ void 	HTTPRequestParser::extractHttpHeaders()
 
 void	HTTPRequestParser::processChunkedRequestBody()
 {
-	COUT( "HERE WE GO AGAIN" );
 	if ( !_s_.remainingRequestBody.empty() )
 	{
 		if ( chunkedComplete( _s_.remainingRequestBody ) )
 		{
-			send( _s_.clientConnectionSocket, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
+			// send( _s_.clientConnectionSocket, RES_HEADER, strlen( RES_HEADER ), NO_FLAG );
 			throw std::invalid_argument( "CHUNK LI DAZ 3LA WJEH HEADER WAS PROCESSED" );
 		}
 		_s_.remainingRequestBody.clear();

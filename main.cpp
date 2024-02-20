@@ -1,11 +1,9 @@
 #include "./server/Server.hpp"
 
-int main()
-{
-	Server srv;
-	
-	srv.CheckReadableSockets();
+int main() {
+  Server srv;
 
-	return 0;
+  srv.CheckReadableSockets();
+
+  return 0;
 }
-

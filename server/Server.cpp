@@ -14,7 +14,7 @@ Server::~Server()
 
 void Server::serverAddrInit( void )
 {
-	memset(&serverAddr, 0, sizeof( struct sockaddr_in ));
+	std::memset(&serverAddr, 0, sizeof( struct sockaddr_in ));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons( PORT );
 	serverAddr.sin_addr.s_addr = htonl( INADDR_ANY );
@@ -75,7 +75,7 @@ void Server::CheckReadableSockets( void )
 	do
 	{
 		// COUT( "BACK TO SELECT AGAIN" );
-		memcpy( &working_set, &master_set, sizeof( master_set ) );
+		std::memcpy( &working_set, &master_set, sizeof( master_set ) );
 		rc = select( maxSo + 1, &working_set, NULL, NULL, &timeout );
 		ERROR( "select", rc );
 		TIME_OUT( rc );
